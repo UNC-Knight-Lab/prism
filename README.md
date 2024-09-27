@@ -1,2 +1,2 @@
 # prism
-polymer reacitivity insights and sequence modeling
+Welcome to the PRISM (Polymers: Rate Insights and Sequence Modeling) package, offered by the Knight Lab at UNC Chapel Hill!
