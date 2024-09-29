@@ -4,11 +4,19 @@ from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
 from matplotlib import pyplot as plt
 from scipy.optimize import least_squares, minimize
+from pymoo.core.problem import ElementwiseProblem
+from pymoo.algorithms.moo.nsga2 import NSGA2
+from pymoo.core.evaluator import Evaluator
+from pymoo.optimize import minimize
+from pymoo.visualization.scatter import Scatter
+from pymoo.core.population import Population, Individual
 
 k_s = 100
 k_j = 100
 k_c = 100
 k_d = 0.1
+
+exp_data = pd.read_csv('/Users/suprajachittari/Documents/peter/sequence/MPB_tba_oa_DMA.csv')
 
 class PetRAFTKineticFitting():
     def __init__(self, exp_data, A_mol, B_mol, C_mol):
@@ -50,8 +58,8 @@ class PetRAFTKineticFitting():
 
         # parameters
         param_tuple = (k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d)
-        t_span = (0, 100.0)
-        t_eval = np.linspace(0, 100., 500)
+        t_span = (0, 1000.0)
+        t_eval = np.linspace(0, 1000., 500)
 
         sol = solve_ivp(self._ODE, t_span, x0, args=param_tuple, t_eval=t_eval)
 
@@ -77,7 +85,7 @@ class PetRAFTKineticFitting():
         fracA = f_A / (f_A + f_B + f_C)
         fracB = f_B / (f_A + f_B + f_C)
         totalfrac = ((f_iA - f_A) + (f_iB - f_B) + (f_iC - f_C)) / (f_iA + f_iB + f_iC)
-
+        print(fracA)
         idx = np.argmax(totalfrac > 0.96)
 
         return fracA[:idx], fracB[:idx], totalfrac[:idx]
@@ -90,7 +98,7 @@ class PetRAFTKineticFitting():
 
         return np.sum(residuals**2)
     
-    def _objective(self, k):
+    def evaluate(self, k):
         k_AB, k_AC, k_BA, k_BC, k_CA, k_CB = k
         k_AA = 1.
         k_BB = 1.
@@ -98,12 +106,11 @@ class PetRAFTKineticFitting():
 
         sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d)
         pred_F1, pred_F2, pred_X = self._convert_XF(sol)
+        print(pred_F1, pred_F2, pred_X)
         loss1 = self._sum_square_residuals(pred_X, pred_F1, 1)
         loss2 = self._sum_square_residuals(pred_X, pred_F2, 2)
 
-        print(k)
-
-        return [loss1, loss2]
+        return loss1, loss2
     
     def display_overlay(self, new_k):
         k_AB, k_AC, k_BA, k_BC, k_CA, k_CB = new_k
@@ -130,13 +137,14 @@ class PetRAFTKineticFitting():
     #         plt.plot(sol.t, sol.y[i])
     #     plt.show()
     
-    def extract_rates(self, r_1A, r_2A, r_1B, r_2B, r_1C, r_2C):
-        k = [1/r_1A, 1/r_2A, 1/r_1B, 1/r_2B, 1/r_1C, 1/r_2C]
-        new_k = least_squares(fun=self._objective, x0=k, bounds=(0,20))
-        # new_k = minimize(fun=self._objective, x0=k, method='L-BFGS-B', bounds=[(0,20),(0,20),(0,20),(0,20),(0,20),(0,20)])
-        print("Converged rates are", new_k.x)
+    # def extract_rates(self, r_1A, r_2A, r_1B, r_2B, r_1C, r_2C):
+    #     k = [1/r_1A, 1/r_2A, 1/r_1B, 1/r_2B, 1/r_1C, 1/r_2C]
 
-        self.display_overlay(new_k.x)
+    #     new_k = least_squares(fun=self._objective, x0=k, bounds=(0,20))
+    #     # new_k = minimize(fun=self._objective, x0=k, method='L-BFGS-B', bounds=[(0,20),(0,20),(0,20),(0,20),(0,20),(0,20)])
+    #     print("Converged rates are", new_k.x)
+
+    #     self.display_overlay(new_k.x)
     
     def test_values(self, r_1, r_2):
         k_AB = 1/r_1
@@ -154,7 +162,47 @@ class PetRAFTKineticFitting():
         plt.show()
 
 
-exp_data = pd.read_csv('/Users/suprajachittari/Documents/peter/sequence/MPB_tba_oa_DMA.csv')
+class MyOptimizationProblem(ElementwiseProblem):
+    def __init__(self, polymer_obj, **kwargs):
 
-p = PetRAFTKineticFitting(exp_data, 39.77, 72., 19.48)
-p.extract_rates(1,1,1,1,1,1)
+        self.polymer_obj = polymer_obj
+        super().__init__(**kwargs) 
+
+    def _evaluate(self, x, out, *args, **kwargs):
+        print(x)
+
+        f1, f2 = self.polymer_obj.evaluate(x)
+        print(f1, f2)
+        out["F"] = f1, f2  # Objective 1
+
+def main():
+    # Define the problem
+    p = PetRAFTKineticFitting(exp_data, 39.77, 72., 19.48)
+    problem = MyOptimizationProblem(polymer_obj=p, n_var=6, n_obj=2, n_constr=0, xl=np.array([0.1,0.1,0.1,0.1,0.1,0.1]), xu=np.array([2,2,2,2,2,2]))
+
+    # Choose the algorithm (NSGA-II)
+    algorithm = NSGA2(pop_size=100)
+
+    # initial_guess = np.array([[0.5,0.5,0.5,0.5,0.5,0.5],[1,1,1,1,1,1], [1.1,0.9,1,1,0.9,1.2]])
+    # pop = Population.new("X",initial_guess)
+    # Evaluator().eval(problem, pop)
+
+    # Perform the optimization
+    res = minimize(
+        problem,
+        algorithm,
+        ('n_gen', 10),
+        seed=1,
+        verbose=True
+    )
+
+    # # Extract and plot the Pareto front
+    # pareto_front = res.F
+    # print(pareto_front)
+    # Scatter(title="Pareto Front").add(pareto_front).show()
+
+
+
+main()
+# p = PetRAFTKineticFitting(exp_data, 39.77, 72., 19.48)
+# p.extract_rates(1,1,1,1,1,1)
