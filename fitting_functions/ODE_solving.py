@@ -4,8 +4,8 @@ from scipy.interpolate import interp1d
 from matplotlib import pyplot as plt
 from scipy.optimize import minimize
 
-k_s = 100
-k_j = 100
+k_s = 10
+k_j = 10
 k_c = 100
 k_d = 0.1
 
