@@ -10,10 +10,15 @@ k_c = 100
 k_d = 0.1
 
 class PetRAFTKineticFitting():
-    def __init__(self, exp_data, A_mol, B_mol):
+    def __init__(self, exp_data, A_mol, B_mol, data_index = None):
         self.exp_data = exp_data
         self.A_mol = A_mol
         self.B_mol = B_mol
+
+        if data_index == None:
+            self.data_index = 1
+        else:
+            self.data_index = data_index
     
     def _ODE(self, t, x, k_s, k_j, k_AA, k_AB, k_BA, k_BB, k_c, k_d):
         cta, cta_r, R_r, a, b, x_a, x_b, x_ac, x_bc, d = x
@@ -73,7 +78,7 @@ class PetRAFTKineticFitting():
         interpolator = interp1d(pred_X, pred_F, kind='linear')
         y_interpolated = interpolator(self.exp_data.iloc[:,0])
 
-        residuals = self.exp_data.iloc[:,1] - y_interpolated
+        residuals = self.exp_data.iloc[:,self.data_index] - y_interpolated
 
         return np.sum(residuals**2)
     
@@ -96,7 +101,7 @@ class PetRAFTKineticFitting():
         sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB)
         pred_F, pred_X = self._convert_XF(sol)
 
-        plt.scatter(self.exp_data.iloc[:,0], self.exp_data.iloc[:,1])
+        plt.scatter(self.exp_data.iloc[:,0], self.exp_data.iloc[:,self.data_index])
         plt.plot(pred_X,pred_F)
         plt.ylim([0,1.1])
         plt.show()
@@ -116,6 +121,8 @@ class PetRAFTKineticFitting():
         print("Converged rates are", new_k.x)
 
         self.display_overlay(new_k.x)
+
+        return new_k.x
     
     def test_values(self, r_1, r_2):
         k_AB = 1/r_1
@@ -242,3 +249,5 @@ class ThermalRAFTKineticFitting():
         print("Converged rates are", new_k.x)
 
         self.display_overlay(new_k.x)
+
+        return new_k.x
