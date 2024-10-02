@@ -10,8 +10,6 @@ k_j = 100
 k_c = 100
 k_d = 0.1
 
-exp_data = pd.read_csv('/Users/suprajachittari/Documents/peter/sequence/SC_tba_ba_NIPAM.csv')
-
 class ThreeMonomerThermalRAFTKineticFitting():
     def __init__(self, exp_data, A_mol, B_mol, C_mol):
         self.exp_data = exp_data
@@ -221,10 +219,3 @@ class ThreeMonomerThermalRAFTKineticFitting():
     #     plt.show()
 
 
-p = ThreeMonomerThermalRAFTKineticFitting(exp_data, 69.8, 22.6, 5.7)
-p.extract_rates(1,1,1,1,1,1)
-# p.display_overlay([1.48, 1.17, 0.832, 1.057, 0.951, 1.036])
-# p.display_overlay([1.3854372, 1.1193374, 0.7749093, 1.04711232, 0.95000449, 1.0367488])
-
-# p = ThreeMonomerReducedFitting(exp_data, 69.8, 22.6, 5.7)
-# p._fitting()
