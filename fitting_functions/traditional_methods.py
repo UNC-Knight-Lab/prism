@@ -36,15 +36,14 @@ class MeyerLoweryFitting():
 
         fA_0, fA, fB_0, fB, conv = self._recast_data(Amol, Bmol)
 
-        y = self._meyer_lowery(fB, fB_0, 4, 0.4)
-        plt.scatter(fB, y)
-        # plt.scatter(fA, conv)
-        plt.scatter(fB, conv)
-        plt.show()
-        # hi
-        # r_A, r_B = self._fit(fA_0, fA, conv)
+        r_A, r_B = self._fit(fA_0, fA, conv)
+        y = self._meyer_lowery(fA, fA_0, r_A, r_B)
 
-        # return r_A, r_B
+        plt.scatter(fA, y)
+        plt.scatter(fA, conv)
+        plt.show()
+
+        return r_A, r_B
 
 
 
