@@ -193,7 +193,7 @@ class SequenceEnsemble():
 
         attempt = 1
 
-        while capped_chains <= 0.98*self.n_chains:
+        while capped_chains <= 0.95*self.n_chains:
 
             while (R_mmol - delta) >= 0:
                 chain = self._draw_uninitated_chain()
@@ -232,7 +232,7 @@ class SequenceEnsemble():
             
             # if np.any(mmol_feed < delta) == True:
             #     break
-            
+
             attempt += 1
         
         while np.max(self.lengths) <= self.max_DP:
