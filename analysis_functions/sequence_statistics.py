@@ -3,6 +3,9 @@ import numpy as np
 from matplotlib import pyplot as plt
 import networkx as nx   
 import pandas as pd
+from collections import defaultdict
+from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances
+from scipy.stats import pearsonr
 
 class MonomerFrequency():
 
@@ -114,83 +117,205 @@ class ConstructGraph():
         # Display the graph
         plt.show()
 
-class EnsembleSimilarity():
-
+class KmerSimilarity():
     def __init__(self, seqs1, seqs2, num_monomers, idx):
 
-        if isinstance(seqs1, pd.DataFrame) == False:
-            self.seqs1 = pd.DataFrame(seqs1)
-        else:
-            self.seqs1 = seqs1
-        
-        if isinstance(seqs2, pd.DataFrame) == False:
-            self.seqs2 = pd.DataFrame(seqs2)
-        else:
-            self.seqs2 = seqs2
+        self.seqs1 = seqs1 
+        self.seqs2 = seqs2
+        self.num_monomers = num_monomers
+        self.idx = idx
 
+    def _count_kmers(self, sequence, k):
+
+        kmer_counts = defaultdict(int)
+        
+        for i in range(len(sequence) - k + 1):
+            kmer = tuple(sequence[i:i + k])
+            kmer_counts[kmer] += 1
+        
+        return kmer_counts
+
+    def _get_unified_kmers(self, *unique_kmers_list):
+        unified_kmers = set()
+        
+        for unique_kmers in unique_kmers_list:
+            for kmer in unique_kmers:
+                unified_kmers.add(tuple(kmer))
+        
+        return sorted(unified_kmers)
+
+    def _vectorize_kmers(self, unique_kmers, unified_kmers):
+        frequency_vector = np.array([unique_kmers.get(kmer, 0) for kmer in unified_kmers])
+        return frequency_vector
+
+    def _normalize_vector(self, vector):
+        norm = np.linalg.norm(vector)
+        if norm == 0:
+            return vector
+        return vector / norm
+    
+    def _euclidean_distance(self, vec1, vec2):
+        vec1 = vec1.reshape(1, -1)
+        vec2 = vec2.reshape(1, -1)
+
+        return euclidean_distances(vec1, vec2)[0][0]
+
+    def _pearson_correlation(self, vec1, vec2):
+
+        return pearsonr(vec1, vec2)[0]
+    
+    def _similarity(self, seq1, seq2, k):
+        kmers1  = self._count_kmers(seq1, k)
+        kmers2 = self._count_kmers(seq2, k)
+        
+        unified_kmers = self._get_unified_kmers(kmers1, kmers2)
+        
+        vector1 = self._vectorize_kmers(kmers1, unified_kmers)
+        vector2 = self._vectorize_kmers(kmers2, unified_kmers)
+        
+        norm_vec1 = self._normalize_vector(vector1)
+        norm_vec2 = self._normalize_vector(vector2)
+
+        a = self._euclidean_distance(norm_vec1, norm_vec2)
+        # b = self._pearson_correlation(norm_vec1, norm_vec2)
+
+        return a
+    
+    def sequence_alignment(self):
+
+        res = np.zeros((100))
+
+        for i in range(100):
+            res[i] = self._similarity(self.seqs1[i,:], self.seqs2[i,:], 5)
+        
+        print(res)
+
+class GlobalSimilarity():
+
+    def __init__(self, seqs1, seqs2, num_monomers, idx):
+        self.seqs1 = seqs1 
+        self.seqs2 = seqs2
         self.num_monomers = num_monomers
         self.idx = idx
     
-    def _replace(self):
+    def _global_alignment(self, seq1, seq2):
+        match_score = 1
+        mismatch_score = -1
+        gap_penalty = -2
 
-        dict_replace = {}
-
-        for i in range(1, self.num_monomers+1):
-            if i in self.idx:
-                dict_replace[i] = 1
-            else:
-                dict_replace[i] = 0
+        n = len(seq1)
+        m = len(seq2)
         
-        self.seqs1.replace(dict_replace, inplace=True)
-        self.seqs2.replace(dict_replace, inplace=True)
-
-        self.seqs1 = self.seqs1.loc[:, (self.seqs1 != 0).any(axis=0)]
-        self.seqs2 = self.seqs2.loc[:, (self.seqs2 != 0).any(axis=0)]
-
-    
-    def _trim(self):
-        if self.seqs1.shape[1] > self.seqs2.shape[1]:
-            final_index = self.seqs2.shape[1]
-
-            diff = int((self.seqs1.shape[1] - final_index))
-
-            s1_p = self.seqs1.mean(axis = 0).iloc[:-diff]
-            s2_p = self.seqs2.mean(axis = 0)
-
-        else: # s1 is smaller than s2
-            final_index = self.seqs1.shape[1]
-
-            diff = int((self.seqs2.shape[1] - final_index))
-
-            s1_p = self.seqs1.mean(axis = 0)
-            s2_p = self.seqs2.mean(axis = 0).iloc[:-diff]
+        # Create the score matrix
+        score_matrix = np.zeros((n + 1, m + 1))
         
-        return s1_p, s2_p
+        # Initialize the first row and column
+        for i in range(1, n + 1):
+            score_matrix[i, 0] = score_matrix[i - 1, 0] + gap_penalty
+        for j in range(1, m + 1):
+            score_matrix[0, j] = score_matrix[0, j - 1] + gap_penalty
+        
+        # Fill the score matrix
+        for i in range(1, n + 1):
+            for j in range(1, m + 1):
+                if seq1[i - 1] == seq2[j - 1]:
+                    score_matrix[i][j] = score_matrix[i - 1, j - 1] + match_score
+                else:
+                    score_matrix[i, j] = max(
+                        score_matrix[i - 1, j] + gap_penalty,     # Gap in seq2
+                        score_matrix[i, j - 1] + gap_penalty,     # Gap in seq1
+                        score_matrix[i - 1, j - 1] + mismatch_score # Mismatch
+                    )
+        
+        return score_matrix[-1, -1]  # Return the final alignment score
     
-    def _KLD(self, s1, s2):
+    def sequence_alignment(self):
 
-        kl = 0
+        res = np.zeros((100))
 
-        for i in range(s1.shape[0]):
-            kl += s1.iloc[i] * np.log2(s1.iloc[i] / s2.iloc[i])
+        for i in range(100):
+            res[i] = self._global_alignment(self.seqs1[i,:], self.seqs2[i,:])
+        
+        print(res)
 
-        return kl
+
+# class EnsembleSimilarity():
+
+#     def __init__(self, seqs1, seqs2, num_monomers, idx):
+
+#         if isinstance(seqs1, pd.DataFrame) == False:
+#             self.seqs1 = pd.DataFrame(seqs1)
+#         else:
+#             self.seqs1 = seqs1
+        
+#         if isinstance(seqs2, pd.DataFrame) == False:
+#             self.seqs2 = pd.DataFrame(seqs2)
+#         else:
+#             self.seqs2 = seqs2
+
+#         self.num_monomers = num_monomers
+#         self.idx = idx
     
-    def KL_divergence(self): # "foreground" monomer
-        self._replace()
-        s1, s2 = self._trim()
-        kl = self._KLD(s1, s2)
+#     def _replace(self):
 
-        return kl
+#         dict_replace = {}
 
-    def JS_divergence(self):
-        self._replace()
+#         for i in range(1, self.num_monomers+1):
+#             if i in self.idx:
+#                 dict_replace[i] = 1
+#             else:
+#                 dict_replace[i] = 0
+        
+#         self.seqs1.replace(dict_replace, inplace=True)
+#         self.seqs2.replace(dict_replace, inplace=True)
 
-        s1, s2 = self._trim()
+#         self.seqs1 = self.seqs1.loc[:, (self.seqs1 != 0).any(axis=0)]
+#         self.seqs2 = self.seqs2.loc[:, (self.seqs2 != 0).any(axis=0)]
 
-        s1 /= sum(s1)
-        s2 /= sum(s2)
+    
+#     def _trim(self):
+#         if self.seqs1.shape[1] > self.seqs2.shape[1]:
+#             final_index = self.seqs2.shape[1]
 
-        m = (s1 + s2.values) * 0.5
+#             diff = int((self.seqs1.shape[1] - final_index))
 
-        return 0.5*self._KLD(s1, m) + 0.5*self._KLD(s1, m)
+#             s1_p = self.seqs1.mean(axis = 0).iloc[:-diff]
+#             s2_p = self.seqs2.mean(axis = 0)
+
+#         else: # s1 is smaller than s2
+#             final_index = self.seqs1.shape[1]
+
+#             diff = int((self.seqs2.shape[1] - final_index))
+
+#             s1_p = self.seqs1.mean(axis = 0)
+#             s2_p = self.seqs2.mean(axis = 0).iloc[:-diff]
+        
+#         return s1_p, s2_p
+    
+#     def _KLD(self, s1, s2):
+
+#         kl = 0
+
+#         for i in range(s1.shape[0]):
+#             kl += s1.iloc[i] * np.log2(s1.iloc[i] / s2.iloc[i])
+
+#         return kl
+    
+#     def KL_divergence(self): # "foreground" monomer
+#         self._replace()
+#         s1, s2 = self._trim()
+#         kl = self._KLD(s1, s2)
+
+#         return kl
+
+#     def JS_divergence(self):
+#         self._replace()
+
+#         s1, s2 = self._trim()
+
+#         s1 /= sum(s1)
+#         s2 /= sum(s2)
+
+#         m = (s1 + s2.values) * 0.5
+
+#         return 0.5*self._KLD(s1, m) + 0.5*self._KLD(s1, m)
