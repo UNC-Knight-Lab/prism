@@ -178,5 +178,5 @@ class EnsembleSimilarity():
         scores_mat = np.vstack(s)
         scores = np.sum(scores_mat, axis=0) / 100
         print(np.sum(scores))
-        # plt.plot(scores)
-        # plt.show()
+        plt.plot(scores)
+        plt.show()
