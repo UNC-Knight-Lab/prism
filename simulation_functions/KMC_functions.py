@@ -26,7 +26,7 @@ class SequenceEnsemble():
     def _growth_update(self, mmol_feed, new, idx, delta, monomer_index, num_monomers):
 
         for i in range(num_monomers):
-            if new == monomer_index[i] and ((np.round(mmol_feed[i], decimals=3) - delta) >= 0):
+            if new == monomer_index[i] and ((mmol_feed[i] - delta) >= 0):
                 self.sequences[idx, self.lengths[idx]] = monomer_index[i]
                 mmol_feed[i] -= delta
                 self.lengths[idx] += 1
@@ -193,7 +193,7 @@ class SequenceEnsemble():
 
         attempt = 1
 
-        while capped_chains <= 0.95*self.n_chains:
+        while capped_chains <= 0.98*self.n_chains:
 
             while (R_mmol - delta) >= 0:
                 chain = self._draw_uninitated_chain()
@@ -229,9 +229,7 @@ class SequenceEnsemble():
                 self._uncapping_update(chain, uncapped_index)
                 swap_chain = self._draw_uncapped_chain()
                 self._capping_update(swap_chain, capped_index)
-            
-            # if np.any(mmol_feed < delta) == True:
-            #     break
+        
 
             attempt += 1
         
@@ -344,6 +342,7 @@ class SequenceEnsemble():
         for block in range(num_blocks):
             mmol_feed = feed_ratios[block, :]
             initiator = initiator_list[block]
+            print("Evaluating 'block' number", block+1)
 
             if block == 0:
                 capped_chains, dead_index = self._run_first_block(mmol_feed, num_monomers, initiator, rate_matrix)
