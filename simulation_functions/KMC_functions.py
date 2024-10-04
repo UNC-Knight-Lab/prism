@@ -286,7 +286,7 @@ class SequenceEnsemble():
                 swap_chain = self._draw_uncapped_chain()
                 self._capping_update(swap_chain, capped_index)
             
-            if np.any((mmol_feed != 0) & (mmol_feed <= delta)) == True:
+            if (np.any(mmol_feed != 0) == True) & ((mmol_feed <= delta).all() == True):
                 break
         
         return capped_chains
@@ -314,9 +314,8 @@ class SequenceEnsemble():
 
                 swap_chain = self._draw_uncapped_chain()
                 self._capping_update(swap_chain, capped_index)
-            
-            if np.sum(mmol_feed) <= delta: #np.any((mmol_feed != 0) & (mmol_feed <= delta)) == True:
-                print(mmol_feed)
+    
+            if (np.any(mmol_feed != 0) == True) & ((mmol_feed <= delta).all() == True):
                 break
 
     
