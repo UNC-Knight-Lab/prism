@@ -150,12 +150,22 @@ class ConstructGraph():
     def _convert_to_graph(self, adj_matrix, labels):
         G = nx.from_numpy_array(adj_matrix)
 
-        pos = nx.spring_layout(G)
+        # Get number of nodes
+        n = len(adj_matrix)
+        
+        # Create positions in a regular polygon
+        pos = {}
+        radius = 1  # You can adjust this for larger/smaller polygons
+        for i in range(n):
+            angle = 2 * np.pi * i / n
+            pos[i] = (radius * np.cos(angle), radius * np.sin(angle))
+
+        # pos = nx.spring_layout(G)
         nx.draw_networkx_labels(G, pos, labels, font_size=12, font_color='black')
         node_size = [sum(adj_matrix[i]) * 10 for i in range(len(adj_matrix))]  # Scaling factor of 10 for visibility
 
         edges = G.edges(data=True)
-        edge_thickness = [d['weight'] /10 for (u, v, d) in edges]  # Scaling down for visibility
+        edge_thickness = [d['weight'] /5 for (u, v, d) in edges]  # Scaling down for visibility
 
         nx.draw(G, pos, node_color='lightblue', node_size=node_size, width=edge_thickness, font_weight='bold')
 

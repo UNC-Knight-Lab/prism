@@ -9,12 +9,11 @@ from scipy.stats import pearsonr
 
 class MonomerFrequency():
 
-    def __init__(self, seqs, num_monomers, idx):
+    def __init__(self, seqs, num_monomers):
         self.sequences = seqs.astype(int)
         self.num_seqs = seqs.shape[0]
         self.max_DP = seqs.shape[1]
         self.num_monomers = num_monomers
-        self.idx_f = idx
     
     def get_frequency(self):
         freq_count = np.zeros((self.num_monomers, self.max_DP))
@@ -29,6 +28,10 @@ class MonomerFrequency():
 
         for i in range(self.num_monomers):
             plt.plot(freq_count[i,:])
+
+        plt.xlabel('degree of polymerization')
+        plt.ylabel('monomer probability')
+        plt.xlim(left=2)
         plt.show()
 
 class ChainLengthDispersity():

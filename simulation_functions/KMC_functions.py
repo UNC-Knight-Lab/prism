@@ -188,7 +188,7 @@ class SequenceEnsemble():
         for i in range(num_initiated_chains):
             new = self._first_monomer(mmol_feed, num_monomers, monomer_indexes)
             mmol_feed = self._growth_update(mmol_feed, new, i, delta, monomer_indexes, num_monomers)
-        
+            
         self.chain_status[0:num_initiated_chains] = 1
 
         attempt = 1
@@ -230,7 +230,6 @@ class SequenceEnsemble():
                 swap_chain = self._draw_uncapped_chain()
                 self._capping_update(swap_chain, capped_index)
         
-
             attempt += 1
         
         while np.max(self.lengths) <= self.max_DP:
@@ -250,8 +249,10 @@ class SequenceEnsemble():
                 swap_chain = self._draw_uncapped_chain()
                 self._capping_update(swap_chain, capped_index)
             
-            if np.sum(mmol_feed) < delta:
+            if (np.any(mmol_feed != 0) == True) & ((mmol_feed <= delta).all() == True):
                 break
+            
+            # print(mmol_feed)
 
         return capped_chains, dead_index
 
