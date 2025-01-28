@@ -7,7 +7,7 @@ from scipy.optimize import minimize
 k_s = 10
 k_j = 10
 k_c = 100
-k_d = 0.1
+k_d = 1
 
 class PetRAFTKineticFitting():
     def __init__(self, exp_data, A_mol, B_mol, data_index = None):
@@ -111,9 +111,23 @@ class PetRAFTKineticFitting():
 
         sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB)
 
-        for i in range(5,10):
+        for i in range(3,5):
             plt.plot(sol.t, sol.y[i])
         plt.show()
+    
+    def predict_conversion(self, r_A, r_B):
+        k_AB = 1
+        k_BA = 1
+        k_AA = r_A
+        k_BB = r_B
+
+        sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB)
+
+        A_conv = 1 - (sol.y[3][-1] / self.A_mol)
+        B_conv = 1 - (sol.y[4][-1] / self.B_mol)
+
+        return A_conv, B_conv
+
     
     def extract_rates(self, r_1, r_2):
         k = [1/r_1, 1/r_2]
@@ -242,6 +256,14 @@ class ThermalRAFTKineticFitting():
         for i in range(5,10):
             plt.plot(sol.t, sol.y[i])
         plt.show()
+    
+    def predict_conversion(self, r_A, r_B):
+        k_AB = 1
+        k_BA = 1
+        k_AA = r_A
+        k_BB = r_B
+
+
     
     def extract_rates(self, k_AA, k_AB, k_BA, k_BB):
         k = [k_AA, k_AB, k_BA, k_BB]

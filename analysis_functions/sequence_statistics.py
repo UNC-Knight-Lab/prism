@@ -32,7 +32,14 @@ class MonomerFrequency():
         plt.xlabel('degree of polymerization')
         plt.ylabel('monomer probability')
         plt.xlim(left=2)
-        plt.show()
+        plt.ylim([0,1.0])
+        plt.savefig('freq.svg',format='svg')
+    
+    def frequency_output(self):
+        freq_count = self.get_frequency()
+
+        df = pd.DataFrame(freq_count).T
+        df.to_csv('freq.csv')
 
 class ChainLengthDispersity():
 

@@ -76,7 +76,7 @@ class SequenceEnsemble():
                     rates_add[j,1] = monomer_index[j]
                     rates_add[j,2] = sum(rates_add[:,0])
 
-        k_cap = 100 
+        k_cap = 100
 
         # chain caps with another chain
         rates_add[num_monomers,0] = capped_chains*k_cap
@@ -173,7 +173,7 @@ class SequenceEnsemble():
             self.chain_status[idx] = 3
 
 
-    def _run_first_block(self, mmol_feed, num_monomers, inits, r_matrix):
+    def _run_first_block(self, mmol_feed, num_monomers, inits, r_matrix, conversion):
         delta = 1 / self.n_chains
         num_initiated_chains = int(inits * self.n_chains)
         CTA_mmol = 1.
@@ -184,6 +184,8 @@ class SequenceEnsemble():
         monomer_indexes = np.arange(1, num_monomers+1)
         capped_index = num_monomers + 1
         dead_index = capped_index + 1
+
+        left_over = (1 - conversion) * mmol_feed
 
         for i in range(num_initiated_chains):
             new = self._first_monomer(mmol_feed, num_monomers, monomer_indexes)
@@ -249,7 +251,11 @@ class SequenceEnsemble():
                 swap_chain = self._draw_uncapped_chain()
                 self._capping_update(swap_chain, capped_index)
             
-            if (np.any(mmol_feed != 0) == True) & ((mmol_feed <= delta).all() == True):
+            result = (mmol_feed - left_over) <= delta
+            # print(mmol_feed, left_over)
+            # print(result)
+
+            if result.all() == True:
                 break
             
             # print(mmol_feed)
@@ -320,14 +326,14 @@ class SequenceEnsemble():
                 break
 
     
-    def run_statistical(self, feed_ratios, initiator, rate_matrix):
+    def run_statistical(self, feed_ratios, initiator, rate_matrix, conversion):
         num_monomers = feed_ratios.shape[0]
         self.max_DP = int(np.sum(feed_ratios) + 50)
         self.sequences = np.zeros((self.n_chains, self.max_DP))
 
         capped_chains = 0
 
-        capped_chains, dead_index = self._run_first_block(feed_ratios, num_monomers, initiator, rate_matrix)
+        capped_chains, dead_index = self._run_first_block(feed_ratios, num_monomers, initiator, rate_matrix, conversion)
 
         return self.sequences
 
@@ -366,7 +372,7 @@ class SequenceEnsemble():
             print("Evaluating 'block' number", block+1)
 
             if block == 0:
-                _, _ = self._run_first_block(mmol_feed, num_monomers, initiator, rate_matrix)
+                _, _ = self._run_first_block(mmol_feed, num_monomers, initiator, rate_matrix, np.ones(num_monomers))
             else:
                 self._run_gradient(mmol_feed, rate_matrix, num_monomers)
         

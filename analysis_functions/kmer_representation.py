@@ -2,7 +2,9 @@ import numpy as np
 from collections import defaultdict
 import networkx as nx
 from matplotlib import pyplot as plt
+from matplotlib.patches import FancyArrowPatch, Arc
 import itertools
+import pandas as pd
 
 class KmerSimilarity():
     def __init__(self, num_monomers, k):
@@ -146,30 +148,46 @@ class ConstructGraph():
                 labels[i] =  ''.join(map(str, kmer_mat[i,:]))
         
         return labels
-    
-    def _convert_to_graph(self, adj_matrix, labels):
-        G = nx.from_numpy_array(adj_matrix)
 
-        # Get number of nodes
-        n = len(adj_matrix)
+    def _convert_to_graph(self, adj_matrix, labels):
+        G = nx.DiGraph()
+
+        # G = nx.from_numpy_array(adj_matrix)
+        n = adj_matrix.shape[0]
+
+        for i in range(n):
+            for j in range(i, n):
+                if i == j:
+                    G.add_edge(i, i, weight=adj_matrix[i,j])
+                else:
+                    G.add_edge(i, j,weight=adj_matrix[i,j])
+                    G.add_edge(j, i, weight=adj_matrix[j,i])
         
-        # Create positions in a regular polygon
+        # # Create positions in a regular polygon
         pos = {}
-        radius = 1  # You can adjust this for larger/smaller polygons
+        radius = 0.01  # You can adjust this for larger/smaller polygons
         for i in range(n):
             angle = 2 * np.pi * i / n
             pos[i] = (radius * np.cos(angle), radius * np.sin(angle))
 
-        # pos = nx.spring_layout(G)
-        nx.draw_networkx_labels(G, pos, labels, font_size=12, font_color='black')
-        node_size = [sum(adj_matrix[i]) * 10 for i in range(len(adj_matrix))]  # Scaling factor of 10 for visibility
+        # pos = nx.spring_layout(G, seed = 5)
+        fig, ax = plt.subplots()
+        nx.draw_networkx_labels(G, pos, labels, font_size=12, font_color='black',ax=ax)
+        node_size = [sum(adj_matrix[i]) * 1000 for i in range(len(adj_matrix))]  # Scaling factor of 10 for visibility
+        nx.draw_networkx_nodes(G, pos, node_color='lightblue', node_size=node_size, ax=ax)
 
+        # curved_edges = [edge for edge in G.edges() if reversed(edge) in G.edges()]
+        # straight_edges = list(set(G.edges()) - set(curved_edges))
+        # nx.draw_networkx_edges(G, pos, ax=ax, edgelist=straight_edges)
         edges = G.edges(data=True)
-        edge_thickness = [d['weight'] /5 for (u, v, d) in edges]  # Scaling down for visibility
+        edge_thickness = [d['weight'] * 8 for (u, v, d) in edges] 
+        arc_rad = 0.25
+        nx.draw_networkx_edges(G, pos, ax=ax, connectionstyle=f'arc3, rad = {arc_rad}', width=edge_thickness)
 
-        nx.draw(G, pos, node_color='lightblue', node_size=node_size, width=edge_thickness, font_weight='bold')
-
-        plt.show()
+        # self._draw_edges(G, pos, adj_matrix, node_size)
+        # self._draw_middle_arrows(G, pos, adj_matrix)
+        # plt.show()
+        plt.savefig('graph.svg',dpi=300, bbox_inches='tight', transparent=True)
     
     def _monomer_graph(self):
         adj_matrix, kmer_vec = self._nearest_neighbors()
@@ -177,7 +195,7 @@ class ConstructGraph():
         print(adj_matrix)
         self._convert_to_graph(adj_matrix, labels)
 
-    def get_graph(self, segment_size = 1):
+    def get_graph(self, num_seq, segment_size = 1):
 
         if segment_size == 1:
             self._monomer_graph()
@@ -188,6 +206,24 @@ class ConstructGraph():
 
             for i in range(self.sequences.shape[0]):
                 t = self._kmer_counting(self.sequences[i,:],kmer_mat, num_kmers, segment_size)
-                adj_matrix += t
+                adj_matrix += (t / num_seq)
             
             self._convert_to_graph(adj_matrix, labels)
+
+            np.savetxt("adjacency_matrix.csv",adj_matrix)
+    
+    def get_graph_as_heatmap(self, num_seq, segment_size = 1):
+        if segment_size == 1:
+            self._monomer_graph()
+        else:
+            kmer_mat, num_kmers = self._kmer_generation(segment_size)
+            labels = self._convert_kmer_labels(kmer_mat)
+            adj_matrix = np.zeros((num_kmers, num_kmers))
+
+            for i in range(self.sequences.shape[0]):
+                t = self._kmer_counting(self.sequences[i,:],kmer_mat, num_kmers, segment_size)
+                adj_matrix += (t / num_seq)
+        print(labels)
+        plt.imshow(adj_matrix, cmap='magma_r',vmin=0, vmax=0.45)
+        plt.colorbar()
+        plt.savefig("graph_heatmap.svg", dpi=300)
