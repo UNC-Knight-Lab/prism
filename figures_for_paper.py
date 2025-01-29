@@ -24,11 +24,11 @@ from fitting_functions.ODE_solving import PetRAFTKineticFitting
 # np.savetxt("pure_seqs.csv",pure)
 
 ########################## symmetrically alternating ############################
-# exp_data = 1
+exp_data = 1
 
-# fit = PetRAFTKineticFitting(exp_data, 70, 30)
-# A_conv, B_conv = fit.predict_conversion(0.01,0.01)
-# conv = np.array([A_conv, B_conv])
+fit = PetRAFTKineticFitting(exp_data, 70, 30)
+A_conv, B_conv = fit.predict_conversion(0.01,0.01)
+conv = np.array([A_conv, B_conv])
 
 # r_matrix = np.array([
 #     [0.01, 1],
@@ -89,8 +89,8 @@ from fitting_functions.ODE_solving import PetRAFTKineticFitting
 # m = MonomerFrequency(stat, 2)
 # m.plot_frequency()
 
-data = np.loadtxt('stat.csv', delimiter=' ')
-e = ConstructGraph(data, 2)
-e.get_graph_as_heatmap(num_seq = 1000, segment_size=3)
+# data = np.loadtxt('stat.csv', delimiter=' ')
+# e = ConstructGraph(data, 2)
+# e.get_graph_as_heatmap(num_seq = 1000, segment_size=3)
 
 # fit.reconstruct_kinetics(0.01,1,1,0.01)
