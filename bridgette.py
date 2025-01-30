@@ -4,10 +4,10 @@ from fitting_functions.traditional_methods import MeyerLoweryFitting
 import pandas as pd
 
 # read in data
-peter_data = pd.read_excel('/Users/suprajachittari/Documents/peter/sequence/PDB-4-098_conversion.xlsx', header=0)
+data = pd.read_excel('/Users/bridgettepoff/Library/CloudStorage/OneDrive-UniversityofNorthCarolinaatChapelHill/Knight Lab -  Bridgette/kinetics_BP/kinetics_all_meyerlowry.xlsx', header=0)
 
 # initialize fitting object
-f = PetRAFTKineticFitting(peter_data, 97.95, 34.29) # for Peter
+f = PetRAFTKineticFitting(data, 97.95, 34.29) # for Peter
 
 ##### functions to assist in fitting and visualizing data #
 
@@ -22,4 +22,4 @@ f.extract_rates(0.5, 10)
 
 # extract data using Meyer Lowery fitting
 f = MeyerLoweryFitting()
-f.extract_rates(peter_data)
+f.extract_rates(data)
