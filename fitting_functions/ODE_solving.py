@@ -11,9 +11,11 @@ k_d = 1
 
 class PetRAFTKineticFitting():
     def __init__(self, exp_data, A_mol, B_mol, data_index = None):
+        exp_data.iloc[:, 0] = exp_data.iloc[:, 0].round(6)
         self.exp_data = exp_data
         self.A_mol = A_mol
         self.B_mol = B_mol
+
 
         if data_index == None:
             self.data_index = 1
@@ -61,6 +63,11 @@ class PetRAFTKineticFitting():
         A_conc = sol.y[3]
         B_conc = sol.y[4]
 
+        if len(A_conc) == 0 or len(B_conc) == 0:
+            print("Warning: ODE solution has no data.")
+            return np.array([]), np.array([])  # Return empty arrays to avoid crash
+
+
         f_A = (A_conc / self.A_mol) * f_iA
         f_B = (B_conc / self.B_mol) * f_iB
 
@@ -70,12 +77,19 @@ class PetRAFTKineticFitting():
         fracA = f_A / (f_A + f_B)
         totalfrac = ((f_iA - f_A) + (f_iB - f_B)) / (f_iA + f_iB)
 
+        # Debugging prints
+
+        if np.all(totalfrac <= 0.95):
+            print("Warning: No values above 0.95 in totalfrac.")
+            return fracA, totalfrac  # Return everything instead of slicing
+
+
         idx = np.argmax(totalfrac > 0.95)
 
         return fracA[:idx], totalfrac[:idx]
     
     def _sum_square_residuals(self, pred_X, pred_F):
-        interpolator = interp1d(pred_X, pred_F, kind='linear')
+        interpolator = interp1d(pred_X, pred_F, kind='linear', fill_value="extrapolate")
         y_interpolated = interpolator(self.exp_data.iloc[:,0])
 
         residuals = self.exp_data.iloc[:,self.data_index] - y_interpolated
@@ -88,6 +102,7 @@ class PetRAFTKineticFitting():
         k_BA = 1.
 
         sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB)
+        
         pred_F, pred_X = self._convert_XF(sol)
         loss = self._sum_square_residuals(pred_X, pred_F)
 

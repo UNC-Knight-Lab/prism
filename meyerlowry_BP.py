@@ -7,4 +7,4 @@ data = pd.read_excel('/Users/bridgettepoff/Library/CloudStorage/OneDrive-Univers
 
 # extract data using Meyer Lowery fitting
 f = MeyerLoweryFitting() #initialize object
-f.extract_rates(data) #extract r1 and r2
+print(f.extract_rates(data)) #extract r1 and r2
