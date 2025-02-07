@@ -83,9 +83,9 @@ class PetRAFTKineticFitting():
         return np.sum(residuals**2)
     
     def _objective(self, k):
-        k_AB, k_BA = k
-        k_AA = 1.
-        k_BB = 1.
+        k_AA, k_BB = k
+        k_AB = 1.
+        k_BA = 1.
 
         sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB)
         pred_F, pred_X = self._convert_XF(sol)
@@ -94,9 +94,9 @@ class PetRAFTKineticFitting():
         return loss
     
     def display_overlay(self, new_k):
-        k_AB, k_BA = new_k
-        k_AA = 1
-        k_BB = 1
+        k_AA, k_BB = new_k
+        k_AB = 1
+        k_BA = 1
 
         sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB)
         pred_F, pred_X = self._convert_XF(sol)
@@ -130,7 +130,7 @@ class PetRAFTKineticFitting():
 
     
     def extract_rates(self, r_1, r_2):
-        k = [1/r_1, 1/r_2]
+        k = [r_1, r_2]
         new_k = minimize(fun=self._objective, x0=k, method='L-BFGS-B', bounds=[(0,20),(0,20)])
         print("Converged rates are", new_k.x)
 
@@ -139,10 +139,10 @@ class PetRAFTKineticFitting():
         return new_k.x
     
     def test_values(self, r_1, r_2):
-        k_AB = 1/r_1
-        k_BA = 1/r_2
-        k_AA = 1.
-        k_BB = 1.
+        k_AB = 1.
+        k_BA = 1.
+        k_AA = r_1
+        k_BB = r_2
 
         sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB)
         pred_F, pred_X = self._convert_XF(sol)

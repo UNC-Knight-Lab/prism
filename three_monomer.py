@@ -112,6 +112,23 @@ class ThreeMonomerThermalRAFTKineticFitting():
         loss1 = self._sum_square_residuals(pred_X, pred_F1, 1)
 
         return loss1 + loss2
+
+    # def _objective1(self, k):
+    #     k_AA, k_BB, k_CC = k
+    #     k_AB = 1
+    #     k_AC = 1.
+    #     k_BA = 1.
+    #     k_BC = 1.
+    #     k_CA = 1.
+    #     k_CB = 1.
+    #     print(k)
+    #     sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d)
+    #     pred_F1, pred_F2, pred_X = self._convert_XF(sol)
+    #     loss2 = self._sum_square_residuals(pred_X, pred_F2, 2)
+
+    #     loss1 = self._sum_square_residuals(pred_X, pred_F1, 1)
+
+    #     return loss1 + loss2
     
     def _objective2(self, k):
         k_AB, k_AC, k_BA, k_BC, k_CA, k_CB = k
@@ -228,7 +245,6 @@ class ThreeMonomerReducedFitting():
     #     plt.plot(pred_X,pred_F2)
     #     plt.ylim([0,1.1])
     #     plt.show()
-
 
 p = ThreeMonomerThermalRAFTKineticFitting(exp_data, 69.8, 22.6, 5.7)
 p.extract_rates(1,1,1,1,1,1)
