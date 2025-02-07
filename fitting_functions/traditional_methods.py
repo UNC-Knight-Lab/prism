@@ -22,14 +22,26 @@ class MeyerLoweryFitting():
     def _fit(self, fA_0, fA, conv):
         fmodel = Model(self._meyer_lowery)
         params = fmodel.make_params(fA_0 = fA_0, 
-                                    r_A = {'value':0.5, 'min':0, 'max':1}, 
-                                    r_B = {'value':4, 'min':1.5, 'max':5}) # set guesses
+                                    r_A = {'value':0.5, 'min':0, 'max':5}, 
+                                    r_B = {'value':4, 'min':0, 'max':5}) # set guesses
         params['fA_0'].vary = False
         result = fmodel.fit(conv, x=fA, params=params, verbose=True)
 
         return result.params['r_A'], result.params['r_B']
 
     
+    def visualize_overlay(self, exp_data, r_A, r_B):
+        Amol = exp_data.iloc[:,1]
+        Bmol = exp_data.iloc[:,2]
+
+        fA_0, fA, fB_0, fB, conv = self._recast_data(Amol, Bmol)
+        y = self._meyer_lowery(fA, fA_0, r_A, r_B)
+
+        plt.scatter(fA, y)
+        plt.scatter(fA, conv)
+        plt.ylim([0,1])
+        plt.show()
+
     def extract_rates(self, exp_data):
         Amol = exp_data.iloc[:,1]
         Bmol = exp_data.iloc[:,2]
