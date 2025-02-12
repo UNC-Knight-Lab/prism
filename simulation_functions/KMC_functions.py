@@ -186,7 +186,7 @@ class SequenceEnsemble():
         dead_index = capped_index + 1
 
         left_over = (1 - conversion) * mmol_feed
-
+        
         for i in range(num_initiated_chains):
             new = self._first_monomer(mmol_feed, num_monomers, monomer_indexes)
             mmol_feed = self._growth_update(mmol_feed, new, i, delta, monomer_indexes, num_monomers)
@@ -262,13 +262,15 @@ class SequenceEnsemble():
 
         return capped_chains, dead_index
 
-    def _run_block(self, mmol_feed, inits, rate_matrix, capped_chains, num_monomers):
+    def _run_block(self, mmol_feed, inits, rate_matrix, capped_chains, num_monomers, conversion):
         delta = 1.0 / capped_chains
         num_initiated_chains = int(inits * capped_chains)
 
         uncapped_index = 0
         monomer_indexes = np.arange(1, num_monomers+1)
         capped_index = num_monomers + 1
+
+        left_over = (1 - conversion) * mmol_feed
 
         for i in range(num_initiated_chains):
             new = self._first_monomer(mmol_feed, num_monomers, monomer_indexes)
@@ -293,7 +295,9 @@ class SequenceEnsemble():
                 swap_chain = self._draw_uncapped_chain()
                 self._capping_update(swap_chain, capped_index)
             
-            if (np.any(mmol_feed != 0) == True) & ((mmol_feed <= delta).all() == True):
+            result = (mmol_feed - left_over) <= delta
+
+            if result.all() == True:
                 break
         
         return capped_chains
@@ -326,10 +330,13 @@ class SequenceEnsemble():
                 break
 
     
-    def run_statistical(self, feed_ratios, initiator, rate_matrix, conversion):
+    def run_statistical(self, feed_ratios, initiator, rate_matrix, conversion = None):
         num_monomers = feed_ratios.shape[0]
         self.max_DP = int(np.sum(feed_ratios) + 50)
         self.sequences = np.zeros((self.n_chains, self.max_DP))
+
+        if conversion is None:
+            conversion = np.ones(num_monomers)
 
         capped_chains = 0
 
@@ -337,11 +344,14 @@ class SequenceEnsemble():
 
         return self.sequences
 
-    def run_block_copolymer(self, feed_ratios, initiator_list, rate_matrix):
+    def run_block_copolymer(self, feed_ratios, initiator_list, rate_matrix, conversion = None):
         num_blocks = feed_ratios.shape[0]
         num_monomers = feed_ratios.shape[1]
         self.max_DP = int(np.sum(feed_ratios) + 50)
         self.sequences = np.zeros((self.n_chains, self.max_DP))
+
+        if conversion is None:
+            conversion = np.ones((num_blocks, num_monomers))
 
         capped_chains = 0
 
@@ -351,11 +361,11 @@ class SequenceEnsemble():
             print("Evaluating 'block' number", block+1)
 
             if block == 0:
-                capped_chains, dead_index = self._run_first_block(mmol_feed, num_monomers, initiator, rate_matrix)
+                capped_chains, dead_index = self._run_first_block(mmol_feed, num_monomers, initiator, rate_matrix, conversion[block, :])
             else:
                 self._add_chains(initiator, capped_chains)
                 self._terminate_uncapped(dead_index)
-                capped_chains = self._run_block(mmol_feed, initiator, rate_matrix, capped_chains, num_monomers)
+                capped_chains = self._run_block(mmol_feed, initiator, rate_matrix, capped_chains, num_monomers, conversion[block,:])
         
         return self.sequences
     

@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import pandas as pd
 
 from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances
-from scipy.stats import pearsonr
+from scipy.stats import mode
 
 class MonomerFrequency():
 
@@ -14,6 +14,40 @@ class MonomerFrequency():
         self.num_seqs = seqs.shape[0]
         self.max_DP = seqs.shape[1]
         self.num_monomers = num_monomers
+    
+    def _mode_chemical_features(self, features):
+        replace_dict = {}
+
+        replace_dict[0] = 0
+
+        for i in range(self.num_monomers):
+            replace_dict[i + 1] = features[i]
+
+        modes, _ = mode(self.sequences, axis=0)
+
+        replace_func = np.vectorize(lambda x: replace_dict.get(x, x))
+
+        return replace_func(modes[0])
+
+    def _mean_chemical_features(self, features):
+        replace_dict = {}
+
+        replace_dict[0] = 0
+
+        for i in range(self.num_monomers):
+            replace_dict[i+1] = features[i]
+
+        self.sequences = np.vectorize(lambda x: replace_dict.get(x, x))(self.sequences)
+        
+        return np.mean(self.sequences, axis = 0)
+    
+    def chemical_patterning(self, features, method = 'mode'):
+        if method == 'mean':
+            pattern = self._mean_chemical_features(features)
+        else:
+            pattern = self._mode_chemical_features(features)
+        
+        return pattern
     
     def get_frequency(self):
         freq_count = np.zeros((self.num_monomers, self.max_DP))
@@ -176,17 +210,5 @@ class EnsembleSimilarity():
             p = self._cosine_sim(m1[i,:], m2[i,:])
             print(p)
     
-    def sequence_alignment(self):
 
-        seq1, seq2 = self._trim(self.seqs1, self.seqs2)
-        s = []
-
-        for i in range(100):
-            p = self._global_alignment(seq1[i,:], seq2[i,:])
-            s.append(p)
-
-        scores_mat = np.vstack(s)
-        scores = np.sum(scores_mat, axis=0) / 100
-        print(np.sum(scores))
-        plt.plot(scores)
-        plt.show()
+            
