@@ -114,4 +114,5 @@ data1 = np.loadtxt('d1_seqs.csv', delimiter=' ')
 data2 = np.loadtxt('d2_seqs.csv', delimiter=' ')
 
 e = EnsembleSimilarity(data1, data2, num_monomers=3)
-e.global_difference(k=2)
+test = e.global_difference(k=2)
+print(test)

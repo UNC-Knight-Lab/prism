@@ -127,10 +127,10 @@ class EnsembleSimilarity():
     
     def _trim(self, mat1, mat2):
 
-        non_zero_columns = ~np.all(mat1 == 0, axis=0)
+        non_zero_columns = ~np.all(mat1 <= 1E-3 , axis=0)
         mat1 = mat1[:, non_zero_columns]
 
-        non_zero_columns = ~np.all(mat2 == 0, axis=0)
+        non_zero_columns = ~np.all(mat2 <= 1E-3, axis=0)
         mat2 = mat2[:, non_zero_columns]
 
         return mat1, mat2
@@ -169,7 +169,7 @@ class EnsembleSimilarity():
                 else:
                     break
                 
-        return cg_seq / total_junctions
+        return (cg_seq / total_junctions).T
     
     def _cosine_sim(self, s1, s2):
         return np.dot(s1, s2) / (np.linalg.norm(s1) * np.linalg.norm(s2))
@@ -217,9 +217,13 @@ class EnsembleSimilarity():
 
             m2_flip = np.flip(m2)
 
+            scores = np.array((self.num_monomers))
+
             for i in range(self.num_monomers):
-                p = max(self._cosine_sim(m1[i,:], m2[i,:]), self._cosine_sim(m1[i,:], m2_flip[i,:]))
-                print(p)
+                scores[i] = max(self._cosine_sim(m1[i,:], m2[i,:]), self._cosine_sim(m1[i,:], m2_flip[i,:]))
+            
+            return scores
+                
         else:
             kmer_comp = self._list_of_kmers(k)
             print(kmer_comp)
@@ -227,7 +231,19 @@ class EnsembleSimilarity():
             cg_s1 = self._coarse_graining(self.seqs1, k, kmer_comp)
             cg_s2 = self._coarse_graining(self.seqs2, k, kmer_comp)
 
+            cg_s1, cg_s2 = self._trim(cg_s1, cg_s2)
+            cg_s1, cg_s2 = self._realign(cg_s1, cg_s2)
+
+            cg_s2_flip = np.flip(cg_s2)
+            
+            similarity = 0
+            similarity_rev = 0
+            normalization = 0
+
             for i in range(kmer_comp.shape[0]):
                 for j in range(i+1):
-                    f = self._cosine_sim(cg_s1[:,i], cg_s2[:,j]) * self._cosine_sim(kmer_comp[i,:], kmer_comp[j,:])
-                    print(i, j, f)
+                    similarity += self._cosine_sim(cg_s1[i,:], cg_s2[j,:]) * self._cosine_sim(kmer_comp[i,:], kmer_comp[j,:]) 
+                    similarity_rev += self._cosine_sim(cg_s1[i,:], cg_s2_flip[j,:]) * self._cosine_sim(kmer_comp[i,:], kmer_comp[j,:])
+                    normalization += self._cosine_sim(kmer_comp[i,:], kmer_comp[j,:]) 
+            
+            return max(similarity / normalization, similarity_rev / normalization)
