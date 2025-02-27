@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from analysis_functions.sequence_statistics import MonomerFrequency
+from analysis_functions.sequence_statistics import MonomerFrequency, EnsembleSimilarity
 from simulation_functions.KMC_functions import SequenceEnsemble
 from matplotlib import pyplot as plt
 from matplotlib.colors import ListedColormap
@@ -75,18 +75,43 @@ r_matrix = np.array([
 
 ########################## HEATMAP GENERATION ############################
 
-data = np.loadtxt('t4_seqs.csv', delimiter=' ')
+# data = np.loadtxt('t4_seqs.csv', delimiter=' ')
 
-colors = ["#FFFFFF", 
-    "#407ABD",  # Example color for DMA
-    "#491B4F",  # Example color for structural
-    "#EBB101",   # Example color for catalytic
-    "#CB2A57"   # Example color for cap
-]
+# colors = ["#FFFFFF", 
+#     "#407ABD",  # Example color for DMA
+#     "#491B4F",  # Example color for structural
+#     "#EBB101",   # Example color for catalytic
+#     "#CB2A57"   # Example color for cap
+# ]
 
-cmap = ListedColormap(colors)
-# plt.figure(figsize=(2.0,0.82))
-plt.imshow(data[-50:,:], cmap=cmap)
-plt.xticks(ticks=range(0, 130, 20))
+# cmap = ListedColormap(colors)
+# # plt.figure(figsize=(2.0,0.82))
+# plt.imshow(data[-50:,:], cmap=cmap)
+# plt.xticks(ticks=range(0, 130, 20))
+# # plt.show()
+# plt.savefig("t4.svg", format='svg')
+
+
+########################## chemical patterning plots ############################
+
+# data1 = np.loadtxt('d1_seqs.csv', delimiter=' ')
+# data2 = np.loadtxt('d2_seqs.csv', delimiter=' ')
+
+# m = MonomerFrequency(data1, 3)
+# pattern1 = m.chemical_patterning(features = [-0.4, 4.5, -4.5], method = 'mean')
+
+# m = MonomerFrequency(data2, 3)
+# pattern2 = m.chemical_patterning(features = [-0.4, 4.5, -4.5], method = 'mean')
+
+# plt.plot(pattern1)
+# plt.plot(pattern2)
 # plt.show()
-plt.savefig("t4.svg", format='svg')
+
+
+########################## sequence heatmap ###########################
+
+data1 = np.loadtxt('d1_seqs.csv', delimiter=' ')
+data2 = np.loadtxt('d2_seqs.csv', delimiter=' ')
+
+e = EnsembleSimilarity(data1, data2, num_monomers=3)
+e.global_difference(k=2)

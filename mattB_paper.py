@@ -52,13 +52,13 @@ diblock_feed = np.array([
 
 stat_feed = np.array([74.3, 17.3, 34.6])
 
-seq = SequenceEnsemble(1000)
-g1 = seq.run_gradient_copolymer(g1_feed, 0.05, r_matrix)
+# seq = SequenceEnsemble(100)
+# g3 = seq.run_gradient_copolymer(g3_feed, 0.05, r_matrix)
 
-# seq = SequenceEnsemble(1000)
+# seq = SequenceEnsemble(100)
 # diblock = seq.run_block_copolymer(diblock_feed, [0.05,0.05], r_matrix)
 
-# seq = SequenceEnsemble(1000)
+# seq = SequenceEnsemble(100)
 # stat = seq.run_statistical(stat_feed, 0.05, r_matrix)
 
 colors = ["#FFFFFF", 
@@ -68,23 +68,23 @@ colors = ["#FFFFFF",
     "#CB2A57"   # Example color for 4
 ]
 
+
 # cmap = ListedColormap(colors)
-# # plt.figure(figsize=(2.0,0.82))
-# plt.imshow(g1[50:,:], cmap=cmap)
-# plt.savefig("matt_g1.svg", format='svg', dpi=300)
+# plt.figure(figsize=(2.0,0.82))
+# plt.imshow(g3[50:,:], cmap=cmap)
+# plt.xticks(ticks=range(0, 181, 20))
+# plt.savefig("matt_paper/speckle_plots/g3.svg", format='svg', dpi=300)
 
 # m = MonomerFrequency(stat, 3)
 # m.frequency_output()
 
-# g1 = pd.read_csv('matt_paper/g1_freq.csv')
-# g2 = pd.read_csv('matt_paper/g2_freq.csv')
-# g3 = pd.read_csv('matt_paper/g3_freq.csv')
+data = pd.read_csv('matt_paper/g3_freq.csv')
+plt.plot(data.iloc[:,1])
+plt.plot(data.iloc[:,2])
+plt.plot(data.iloc[:,3])
+plt.ylim([0,1.0])
+plt.xlim([0,180])
+plt.savefig('matt_paper/freq_plots/g3.pdf', dpi=300)
 
-# plt.plot(g1.iloc[:,1])
-# plt.plot(g2.iloc[:,1])
-# plt.plot(g3.iloc[:,1])
-# plt.ylim([0,1.0])
-# plt.savefig('DMA_overlayed.png')
-
-e = ConstructGraph(g1, 3)
-e.get_graph_as_heatmap(num_seq = 1000, segment_size=2)
+# e = ConstructGraph(g1, 3)
+# e.get_graph_as_heatmap(num_seq = 1000, segment_size=2)

@@ -1,5 +1,5 @@
 from distutils.ccompiler import new_compiler
-from itertools import chain
+from itertools import product
 import numpy as np
 from matplotlib import pyplot as plt
 import pandas as pd
@@ -134,39 +134,46 @@ class EnsembleSimilarity():
         mat2 = mat2[:, non_zero_columns]
 
         return mat1, mat2
+    
+    def _list_of_kmers(self, k):
+        l = [dist for dist in product(range(k + 1), repeat=self.num_monomers) if sum(dist) == k]
+        return np.array(l)
 
-    def _coarse_graining(self, seq, k):
-        idx = 0
-        num_beads = len(seq) - k + 1
+    def _coarse_graining(self, seq, k, kmer_list):
 
-        cg_seq = np.zeros((num_beads, self.num_monomers))
+        num_beads = np.int64(seq.shape[1] / k)
 
-        for i in range(0,num_beads):
-            segment = seq[i:(i+k)]
+        cg_seq = np.zeros((num_beads, len(kmer_list)))
 
-            for j in range(1,self.num_monomers+1):
-                cg_seq[i,j-1] = np.count_nonzero(segment == j)
+        total_junctions = 0
 
-        return cg_seq, num_beads
+        for i in range(seq.shape[0]):
+            running_idx = 0
+
+            # print(seq[i,:])
+
+            for j in range(0,seq.shape[1], k):
+
+                segment = seq[i,j:(j+k)]
+                seg_counts = np.bincount(segment, minlength=self.num_monomers + 1)
+                seg_counts = seg_counts[1:]
+
+                # print(segment, seg_counts)
+
+                for idx, dist in enumerate(kmer_list):
+                    if np.array_equal(dist, seg_counts):
+                        cg_seq[running_idx, idx] += 1
+                        running_idx += 1
+                        total_junctions += 1
+                        break
+                else:
+                    break
+                
+        return cg_seq / total_junctions
     
     def _cosine_sim(self, s1, s2):
         return np.dot(s1, s2) / (np.linalg.norm(s1) * np.linalg.norm(s2))
     
-    def _global_alignment(self, seq1, seq2):
-        threshold = 0.2
-        cg_s1, n_beads1 = self._coarse_graining(seq1, 5)
-        cg_s2, n_beads2 = self._coarse_graining(seq2, 5)
-
-        n_beads = min(n_beads1, n_beads2)
-
-        scores_mat = np.zeros((n_beads))
-
-        for i in range(n_beads):
-            if (np.all(cg_s1[i,:] == 0) == False) and (np.all(cg_s2[i,:] == 0) == False):
-                scores_mat[i] = 1 - self._cosine_sim(cg_s1[i,:], cg_s2[i,:])
-
-        return scores_mat
-
     def _count_monomers(self, seq):
 
         maxDP = seq.shape[1]
@@ -199,16 +206,28 @@ class EnsembleSimilarity():
         
         return s1, s2
     
-    def global_difference(self):
-        m1 = self._count_monomers(self.seqs1)
-        m2 = self._count_monomers(self.seqs2)
+    def global_difference(self, k = 1):
 
-        m1, m2 = self._trim(m1, m2)
-        m1, m2 = self._realign(m1,m2)
+        if k == 1:
+            m1 = self._count_monomers(self.seqs1)
+            m2 = self._count_monomers(self.seqs2)
 
-        for i in range(self.num_monomers):
-            p = self._cosine_sim(m1[i,:], m2[i,:])
-            print(p)
-    
+            m1, m2 = self._trim(m1, m2)
+            m1, m2 = self._realign(m1,m2)
 
-            
+            m2_flip = np.flip(m2)
+
+            for i in range(self.num_monomers):
+                p = max(self._cosine_sim(m1[i,:], m2[i,:]), self._cosine_sim(m1[i,:], m2_flip[i,:]))
+                print(p)
+        else:
+            kmer_comp = self._list_of_kmers(k)
+            print(kmer_comp)
+
+            cg_s1 = self._coarse_graining(self.seqs1, k, kmer_comp)
+            cg_s2 = self._coarse_graining(self.seqs2, k, kmer_comp)
+
+            for i in range(kmer_comp.shape[0]):
+                for j in range(i+1):
+                    f = self._cosine_sim(cg_s1[:,i], cg_s2[:,j]) * self._cosine_sim(kmer_comp[i,:], kmer_comp[j,:])
+                    print(i, j, f)
