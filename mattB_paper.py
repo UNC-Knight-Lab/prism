@@ -78,13 +78,18 @@ colors = ["#FFFFFF",
 # m = MonomerFrequency(stat, 3)
 # m.frequency_output()
 
-data = pd.read_csv('matt_paper/g3_freq.csv')
-plt.plot(data.iloc[:,1])
-plt.plot(data.iloc[:,2])
-plt.plot(data.iloc[:,3])
-plt.ylim([0,1.0])
-plt.xlim([0,180])
-plt.savefig('matt_paper/freq_plots/g3.pdf', dpi=300)
+# data = pd.read_csv('matt_paper/g3_freq.csv')
+# plt.plot(data.iloc[:,1])
+# plt.plot(data.iloc[:,2])
+# plt.plot(data.iloc[:,3])
+# plt.ylim([0,1.0])
+# plt.xlim([0,180])
+# plt.savefig('matt_paper/freq_plots/g3.pdf', dpi=300)
 
-# e = ConstructGraph(g1, 3)
-# e.get_graph_as_heatmap(num_seq = 1000, segment_size=2)
+data = pd.read_csv('matt_paper/stat_freq.csv').to_numpy()
+max_index = np.argmax(data[:,3])
+target = data[max_index,3] / 2
+tolerance = 0.01
+
+indices = np.where(np.isclose(data[:,3], target, atol=tolerance))[0]
+print(indices)

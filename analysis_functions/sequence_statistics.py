@@ -226,7 +226,6 @@ class EnsembleSimilarity():
                 
         else:
             kmer_comp = self._list_of_kmers(k)
-            print(kmer_comp)
 
             cg_s1 = self._coarse_graining(self.seqs1, k, kmer_comp)
             cg_s2 = self._coarse_graining(self.seqs2, k, kmer_comp)
@@ -247,3 +246,6 @@ class EnsembleSimilarity():
                     normalization += self._cosine_sim(kmer_comp[i,:], kmer_comp[j,:]) 
             
             return max(similarity / normalization, similarity_rev / normalization)
+    
+    def correlation(self, type = 'auto'):
+        
