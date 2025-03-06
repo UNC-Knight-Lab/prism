@@ -47,8 +47,8 @@ class PetRAFTKineticFitting():
 
         # parameters
         param_tuple = (k_s, k_j, k_AA, k_AB, k_BA, k_BB, k_c, k_d)
-        t_span = (0, 10.0)
-        t_eval = np.linspace(0, 10., 100)
+        t_span = (0, 100.0)
+        t_eval = np.linspace(0, 100., 10000)
 
         sol = solve_ivp(self._ODE, t_span, x0, args=param_tuple, t_eval=t_eval)
 
@@ -70,7 +70,8 @@ class PetRAFTKineticFitting():
         fracA = f_A / (f_A + f_B)
         totalfrac = ((f_iA - f_A) + (f_iB - f_B)) / (f_iA + f_iB)
 
-        idx = np.argmax(totalfrac > 0.95)
+        idx = np.argmax(totalfrac > 0.8)
+        # print(totalfrac)
 
         return fracA[:idx], totalfrac[:idx]
     
@@ -90,6 +91,7 @@ class PetRAFTKineticFitting():
         sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB)
         pred_F, pred_X = self._convert_XF(sol)
         loss = self._sum_square_residuals(pred_X, pred_F)
+        print(k)
 
         return loss
     
@@ -101,13 +103,21 @@ class PetRAFTKineticFitting():
         sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB)
         pred_F, pred_X = self._convert_XF(sol)
 
+
+        np.savetxt("pred_X.csv",pred_X)
+        np.savetxt("pred_F.csv",pred_F)
+
+
         plt.scatter(self.exp_data.iloc[:,0], self.exp_data.iloc[:,self.data_index])
-        plt.plot(pred_X,pred_F)
+        plt.scatter(pred_X,pred_F)
         plt.ylim([0,1.1])
         plt.show()
 
 
-    def reconstruct_kinetics(self, k_AA, k_AB, k_BA, k_BB):
+    def reconstruct_kinetics(self, k_AB, k_BA):
+
+        k_AA = 1
+        k_BB = 1
 
         sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB)
 
@@ -131,7 +141,7 @@ class PetRAFTKineticFitting():
     
     def extract_rates(self, r_1, r_2):
         k = [r_1, r_2]
-        new_k = minimize(fun=self._objective, x0=k, method='L-BFGS-B', bounds=[(0,20),(0,20)])
+        new_k = minimize(fun=self._objective, x0=k, method='L-BFGS-B', bounds=[(0.01,20),(0.01,20)])
         print("Converged rates are", new_k.x)
 
         self.display_overlay(new_k.x)

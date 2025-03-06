@@ -192,20 +192,33 @@ class EnsembleSimilarity():
         return m
     
     def _realign(self, s1, s2):
-        if s1.shape[1] > s2.shape[1]:
-            final_index = s2.shape[1]
-            diff = int((s1.shape[1] - final_index))
 
-            s1 = s1[:,:-diff]
+        min_cols = min(s1.shape[1], s2.shape[1])
 
-        else: # s1 is smaller than s2
-            final_index = s1.shape[1]
-
-            diff = int((s2.shape[1] - final_index))
-            s2 = s2[:,:-diff]
+        s1_resized = s1[:, :min_cols]
+        s2_resized = s2[:, :min_cols]
         
-        return s1, s2
+        return s1_resized, s2_resized
     
+    def _acf_lag(self, k, seq, x, last_nonzero_index):
+        binary_seq = np.where(seq == x, 1, 0)
+        acf = 0
+
+        for i in range(last_nonzero_index - k - 1):
+            acf += binary_seq[i]*binary_seq[i+k]
+        return acf / (last_nonzero_index - k)
+
+    def _scan_lags(self, seq, monomer_type):
+        acf = np.zeros((seq.shape[1]))
+
+        for i in range(seq.shape[0]):
+            last_nonzero_index = np.max(np.nonzero(seq[i,:]))
+
+            for j in range(last_nonzero_index):
+                acf[j] += (self._acf_lag(j, seq[i,:], monomer_type, last_nonzero_index)) / seq.shape[0]
+        
+        return acf
+
     def global_difference(self, k = 1):
 
         if k == 1:
@@ -215,9 +228,9 @@ class EnsembleSimilarity():
             m1, m2 = self._trim(m1, m2)
             m1, m2 = self._realign(m1,m2)
 
-            m2_flip = np.flip(m2)
+            m2_flip = np.flip(m2, axis = 1)
 
-            scores = np.array((self.num_monomers))
+            scores = np.zeros((self.num_monomers))
 
             for i in range(self.num_monomers):
                 scores[i] = max(self._cosine_sim(m1[i,:], m2[i,:]), self._cosine_sim(m1[i,:], m2_flip[i,:]))
@@ -233,7 +246,7 @@ class EnsembleSimilarity():
             cg_s1, cg_s2 = self._trim(cg_s1, cg_s2)
             cg_s1, cg_s2 = self._realign(cg_s1, cg_s2)
 
-            cg_s2_flip = np.flip(cg_s2)
+            cg_s2_flip = np.flip(cg_s2, axis = 1)
             
             similarity = 0
             similarity_rev = 0
@@ -241,11 +254,16 @@ class EnsembleSimilarity():
 
             for i in range(kmer_comp.shape[0]):
                 for j in range(i+1):
-                    similarity += self._cosine_sim(cg_s1[i,:], cg_s2[j,:]) * self._cosine_sim(kmer_comp[i,:], kmer_comp[j,:]) 
-                    similarity_rev += self._cosine_sim(cg_s1[i,:], cg_s2_flip[j,:]) * self._cosine_sim(kmer_comp[i,:], kmer_comp[j,:])
-                    normalization += self._cosine_sim(kmer_comp[i,:], kmer_comp[j,:]) 
+                    if (np.linalg.norm(cg_s1[i,:]) == 0) or (np.linalg.norm(cg_s2[j,:]) == 0):
+                        continue
+                    else:
+                        similarity += self._cosine_sim(cg_s1[i,:], cg_s2[j,:]) * self._cosine_sim(kmer_comp[i,:], kmer_comp[j,:]) 
+                        similarity_rev += self._cosine_sim(cg_s1[i,:], cg_s2_flip[j,:]) * self._cosine_sim(kmer_comp[i,:], kmer_comp[j,:])
+                        normalization += self._cosine_sim(kmer_comp[i,:], kmer_comp[j,:]) 
             
             return max(similarity / normalization, similarity_rev / normalization)
     
-    def correlation(self, type = 'auto'):
-        
+    def correlation(self, monomer_type, type = 'auto'):
+        acf1 = self._scan_lags(self.seqs1, monomer_type)
+        acf2 = self._scan_lags(self.seqs2, monomer_type)
+        return acf1, acf2
