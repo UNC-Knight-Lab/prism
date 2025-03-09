@@ -200,22 +200,37 @@ class EnsembleSimilarity():
         
         return s1_resized, s2_resized
     
-    def _acf_lag(self, k, seq, x, last_nonzero_index):
-        binary_seq = np.where(seq == x, 1, 0)
-        acf = 0
+    def _acf_lag(self, k, seq, x, last_nonzero_index, corr_type):
+        if corr_type == 'auto':
+            binary_seq = np.where(seq == x, 1, 0)
+            acf = 0
 
-        for i in range(last_nonzero_index - k - 1):
-            acf += binary_seq[i]*binary_seq[i+k]
-        return acf / (last_nonzero_index - k)
+            for i in range(last_nonzero_index - k - 1):
+                acf += binary_seq[i]*binary_seq[i+k]
+            return acf / (last_nonzero_index - k)
 
-    def _scan_lags(self, seq, monomer_type):
+        elif corr_type == 'pair':
+            replaced_seq = np.zeros_like(seq)
+            replaced_seq[seq == x[0]] = 1
+            replaced_seq[seq == x[1]] = 2
+            acf = 0
+
+            for i in range(last_nonzero_index - k - 1):
+                if replaced_seq[i]*replaced_seq[i+k] == 2:
+                    acf += replaced_seq[i]*replaced_seq[i+k]
+            return acf / (last_nonzero_index - k)
+        else:
+            print("ERROR: Invalid correlation type selected. Please try again specifying 'pair' or 'auto'.")
+
+    def _scan_lags(self, seq, monomer_type, corr_type):
+
         acf = np.zeros((seq.shape[1]))
 
         for i in range(seq.shape[0]):
             last_nonzero_index = np.max(np.nonzero(seq[i,:]))
 
             for j in range(last_nonzero_index):
-                acf[j] += (self._acf_lag(j, seq[i,:], monomer_type, last_nonzero_index)) / seq.shape[0]
+                acf[j] += (self._acf_lag(j, seq[i,:], monomer_type, last_nonzero_index, corr_type)) / seq.shape[0]
         
         return acf
 
@@ -263,7 +278,7 @@ class EnsembleSimilarity():
             
             return max(similarity / normalization, similarity_rev / normalization)
     
-    def correlation(self, monomer_type, type = 'auto'):
-        acf1 = self._scan_lags(self.seqs1, monomer_type)
-        acf2 = self._scan_lags(self.seqs2, monomer_type)
+    def correlation(self, monomer_type, corr_type = 'auto'):
+        acf1 = self._scan_lags(self.seqs1, monomer_type, corr_type)
+        acf2 = self._scan_lags(self.seqs2, monomer_type, corr_type)
         return acf1, acf2

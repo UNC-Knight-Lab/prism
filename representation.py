@@ -102,25 +102,25 @@ t2 = np.loadtxt('t2_seqs.csv', delimiter=' ')
 t3 = np.loadtxt('t3_seqs.csv', delimiter=' ')
 t4 = np.loadtxt('t4_seqs.csv', delimiter=' ')
 
-m = MonomerFrequency(t3, 3)
-pattern1 = m.chemical_patterning(features = [-0.4, 4.5, -4.5], method = 'mean')
+# m = MonomerFrequency(t3, 3)
+# pattern1 = m.chemical_patterning(features = [-0.4, 4.5, -4.5], method = 'mean')
 
-m = MonomerFrequency(t4, 3)
-pattern2 = m.chemical_patterning(features = [-0.4, 4.5, -4.5], method = 'mean')
-
-# m = MonomerFrequency(d2, 3)
+# m = MonomerFrequency(t4, 3)
 # pattern2 = m.chemical_patterning(features = [-0.4, 4.5, -4.5], method = 'mean')
 
 # m = MonomerFrequency(d2, 3)
 # pattern2 = m.chemical_patterning(features = [-0.4, 4.5, -4.5], method = 'mean')
 
-plt.figure(figsize=(1.54,1.10))
-plt.plot(pattern1, lw=1)
-plt.plot(pattern2, lw=1)
-plt.yticks(np.arange(-0.5, 3.0, step=0.5))
-plt.xticks(np.arange(0, 140, step=25))
-# plt.show()
-plt.savefig('t3_t4_chemical_patterning.pdf')
+# m = MonomerFrequency(d2, 3)
+# pattern2 = m.chemical_patterning(features = [-0.4, 4.5, -4.5], method = 'mean')
+
+# plt.figure(figsize=(1.54,1.10))
+# plt.plot(pattern1, lw=1)
+# plt.plot(pattern2, lw=1)
+# plt.yticks(np.arange(-0.5, 3.0, step=0.5))
+# plt.xticks(np.arange(0, 140, step=25))
+# # plt.show()
+# plt.savefig('t3_t4_chemical_patterning.pdf')
 
 
 ########################## sequence heatmap ###########################
@@ -170,7 +170,7 @@ plt.savefig('t3_t4_chemical_patterning.pdf')
 
 ########################## autocorrelation ###########################
 # e = EnsembleSimilarity(d1, d2, num_monomers=3)
-# d1, d2 = e.correlation(1)
+# d1, d2 = e.correlation([2,3])
 
 # e = EnsembleSimilarity(t1, t2, num_monomers=3)
 # a1, a2 = e.correlation(1)
@@ -179,15 +179,25 @@ plt.savefig('t3_t4_chemical_patterning.pdf')
 # e = EnsembleSimilarity(t3, t4, num_monomers=3)
 # a3, a4 = e.correlation(1)
 
+#### PAIRWISE
+e = EnsembleSimilarity(d1, d2, num_monomers=3)
+d1, d2 = e.correlation([2,3], corr_type='pair')
 
-# plt.figure(figsize=(1.54,1.10))
+e = EnsembleSimilarity(t1, t2, num_monomers=3)
+a1, a2 = e.correlation([2,3], corr_type='pair')
+
+
+e = EnsembleSimilarity(t3, t4, num_monomers=3)
+a3, a4 = e.correlation([2,3], corr_type='pair')
+
+plt.figure(figsize=(1.54,1.10))
 # plt.plot(a1, lw=1)
-# # plt.plot(a2, lw=1)
-# plt.plot(a3, lw=1)
-# plt.plot(a4, lw=1)
-# # plt.plot(d1, lw=1)
-# # plt.plot(d2, lw=1)
-# plt.yticks(np.arange(0, 1.0, step=0.2))
-# plt.xticks(np.arange(0, 140, step=25))
-# # plt.show()
-# plt.savefig('autocorr_mon1.pdf', dpi=300)
+# plt.plot(a2, lw=1)
+plt.plot(a3, lw=1)
+plt.plot(a4, lw=1)
+plt.plot(d1, lw=1)
+plt.plot(d2, lw=1)
+plt.yticks(np.arange(0, 0.25, step=0.05))
+plt.xticks(np.arange(0, 140, step=25))
+# plt.show()
+plt.savefig('pair_corr.pdf', dpi=300)
