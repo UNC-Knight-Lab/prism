@@ -71,10 +71,9 @@ class PetRAFTKineticFitting():
         fracA = f_A / (f_A + f_B)
         totalfrac = ((f_iA - f_A) + (f_iB - f_B)) / (f_iA + f_iB)
 
-        idx = np.argmax(totalfrac > (self.exp_data.iloc[-1,0] + 0.1)) + 1
+        idx = np.argmax(totalfrac > self.exp_data.iloc[-1,0]) + 1
         
         while totalfrac[idx] < self.exp_data.iloc[-1,0]:
-            # print("adjusting")
             idx += 1
 
         return fracA[:idx], totalfrac[:idx]
@@ -106,12 +105,12 @@ class PetRAFTKineticFitting():
 
         return loss
     
-    def display_overlay(self, new_k):
+    def display_overlay(self, new_k, t_max):
         k_AA, k_BB = new_k
         k_AB = 1
         k_BA = 1
 
-        sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB)
+        sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB, t_max)
         pred_F, pred_X = self._convert_XF(sol)
 
 
@@ -125,24 +124,24 @@ class PetRAFTKineticFitting():
         plt.show()
 
 
-    def reconstruct_kinetics(self, k_AB, k_BA):
+    def reconstruct_kinetics(self, k_AB, k_BA, t_max):
 
         k_AA = 1
         k_BB = 1
 
-        sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB)
+        sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB, t_max)
 
         for i in range(3,5):
             plt.plot(sol.t, sol.y[i])
         plt.show()
     
-    def predict_conversion(self, r_A, r_B):
+    def predict_conversion(self, r_A, r_B, t_max):
         k_AB = 1
         k_BA = 1
         k_AA = r_A
         k_BB = r_B
 
-        sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB)
+        sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB, t_max)
 
         A_conv = 1 - (sol.y[3][-1] / self.A_mol)
         B_conv = 1 - (sol.y[4][-1] / self.B_mol)
@@ -150,22 +149,22 @@ class PetRAFTKineticFitting():
         return A_conv, B_conv
 
     
-    def extract_rates(self, r_1, r_2):
+    def extract_rates(self, r_1, r_2, t_max):
         k = [r_1, r_2]
         new_k = minimize(fun=self._objective, x0=k, method='L-BFGS-B', bounds=[(0.01,20),(0.01,20)])
         print("Converged rates are", new_k.x)
 
-        self.display_overlay(new_k.x)
+        self.display_overlay(new_k.x, t_max)
 
         return new_k.x
     
-    def test_values(self, r_1, r_2):
+    def test_values(self, r_1, r_2, t_max):
         k_AB = 1.
         k_BA = 1.
         k_AA = r_1
         k_BB = r_2
 
-        sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB)
+        sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB, t_max)
         pred_F, pred_X = self._convert_XF(sol)
 
         plt.plot(pred_X,pred_F)

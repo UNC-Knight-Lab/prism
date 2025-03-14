@@ -234,7 +234,7 @@ class ThreeMonomerPETRAFTKineticFitting():
         fracC = f_C / (f_A + f_B + f_C)
         totalfrac = ((f_iA - f_A) + (f_iB - f_B) + (f_iC - f_C)) / (f_iA + f_iB + f_iC)
 
-        idx = np.argmax(totalfrac > 0.85) + 1
+        idx = np.argmax(totalfrac > self.exp_data.iloc[-1,0]) + 1
 
         # print(totalfrac[idx], self.exp_data.iloc[-1,0])
 
