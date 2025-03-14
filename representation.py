@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from analysis_functions.sequence_statistics import MonomerFrequency, EnsembleSimilarity
-from simulation_functions.KMC_functions import SequenceEnsemble
+from simulation_functions.KMC_functions import PETRAFTSequenceEnsemble
 from matplotlib import pyplot as plt
 from matplotlib.colors import ListedColormap
 
@@ -18,8 +18,9 @@ r_matrix = np.array([
 # d1_feed = np.array([[25., 20., 5.],
 #                 [50., 0., 0.]])
 
-# seq = SequenceEnsemble(1000)
-# d1 = seq.run_block_copolymer(d1_feed, [0.05, 0.02], r_matrix)
+# seq = PETRAFTSequenceEnsemble(100)
+# d1 = seq.run_block_copolymer(d1_feed, 0.05, r_matrix)
+
 # np.savetxt("d1_seqs.csv",d1)
 
 # ########################## d2 ############################
@@ -33,12 +34,14 @@ r_matrix = np.array([
 
 # ########################## t1 ############################
 
-# t1_feed = np.array([[30., 0., 0.],
-#                 [15., 20., 5.],
-#                 [30., 0., 0.]])
+t1_feed = np.array([[30., 0., 0.],
+                [15., 20., 5.],
+                [30., 0., 0.]])
 
-# seq = SequenceEnsemble(1000)
-# t1 = seq.run_block_copolymer(t1_feed, [0.05, 0.02, 0.02], r_matrix)
+seq = PETRAFTSequenceEnsemble(100)
+t1 = seq.run_block_copolymer(t1_feed, 0.01, r_matrix)
+plt.imshow(t1)
+plt.show()
 # np.savetxt("t1_seqs.csv",t1)
 
 # ########################## t2 ############################
@@ -95,12 +98,12 @@ r_matrix = np.array([
 
 ########################## chemical patterning plots ############################
 
-d1 = np.loadtxt('d1_seqs.csv', delimiter=' ')
-d2 = np.loadtxt('d2_seqs.csv', delimiter=' ')
-t1 = np.loadtxt('t1_seqs.csv', delimiter=' ')
-t2 = np.loadtxt('t2_seqs.csv', delimiter=' ')
-t3 = np.loadtxt('t3_seqs.csv', delimiter=' ')
-t4 = np.loadtxt('t4_seqs.csv', delimiter=' ')
+# d1 = np.loadtxt('d1_seqs.csv', delimiter=' ')
+# d2 = np.loadtxt('d2_seqs.csv', delimiter=' ')
+# t1 = np.loadtxt('t1_seqs.csv', delimiter=' ')
+# t2 = np.loadtxt('t2_seqs.csv', delimiter=' ')
+# t3 = np.loadtxt('t3_seqs.csv', delimiter=' ')
+# t4 = np.loadtxt('t4_seqs.csv', delimiter=' ')
 
 # m = MonomerFrequency(t3, 3)
 # pattern1 = m.chemical_patterning(features = [-0.4, 4.5, -4.5], method = 'mean')
@@ -180,24 +183,24 @@ t4 = np.loadtxt('t4_seqs.csv', delimiter=' ')
 # a3, a4 = e.correlation(1)
 
 #### PAIRWISE
-e = EnsembleSimilarity(d1, d2, num_monomers=3)
-d1, d2 = e.correlation([2,3], corr_type='pair')
+# e = EnsembleSimilarity(d1, d2, num_monomers=3)
+# d1, d2 = e.correlation([2,3], corr_type='pair')
 
-e = EnsembleSimilarity(t1, t2, num_monomers=3)
-a1, a2 = e.correlation([2,3], corr_type='pair')
+# e = EnsembleSimilarity(t1, t2, num_monomers=3)
+# a1, a2 = e.correlation([2,3], corr_type='pair')
 
 
-e = EnsembleSimilarity(t3, t4, num_monomers=3)
-a3, a4 = e.correlation([2,3], corr_type='pair')
+# e = EnsembleSimilarity(t3, t4, num_monomers=3)
+# a3, a4 = e.correlation([2,3], corr_type='pair')
 
-plt.figure(figsize=(1.54,1.10))
-# plt.plot(a1, lw=1)
-# plt.plot(a2, lw=1)
-plt.plot(a3, lw=1)
-plt.plot(a4, lw=1)
-plt.plot(d1, lw=1)
-plt.plot(d2, lw=1)
-plt.yticks(np.arange(0, 0.25, step=0.05))
-plt.xticks(np.arange(0, 140, step=25))
-# plt.show()
-plt.savefig('pair_corr.pdf', dpi=300)
+# plt.figure(figsize=(1.54,1.10))
+# # plt.plot(a1, lw=1)
+# # plt.plot(a2, lw=1)
+# plt.plot(a3, lw=1)
+# plt.plot(a4, lw=1)
+# plt.plot(d1, lw=1)
+# plt.plot(d2, lw=1)
+# plt.yticks(np.arange(0, 0.25, step=0.05))
+# plt.xticks(np.arange(0, 140, step=25))
+# # plt.show()
+# plt.savefig('pair_corr.pdf', dpi=300)

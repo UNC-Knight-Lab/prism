@@ -193,7 +193,7 @@ class ThreeMonomerPETRAFTKineticFitting():
 
         return dxdt
     
-    def _integrate_ODE(self, k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d):
+    def _integrate_ODE(self, k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d, t_max):
         # initial condition
         x0 = np.zeros((13))
         x0[0] = 1.
@@ -203,8 +203,8 @@ class ThreeMonomerPETRAFTKineticFitting():
 
         # parameters
         param_tuple = (k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d)
-        t_span = (0, 20.0)
-        t_eval = np.linspace(0, 20., 1000)
+        t_span = (0, t_max)
+        t_eval = np.linspace(0, t_max, int(t_max*10))
 
         sol = solve_ivp(self._ODE, t_span, x0, args=param_tuple, t_eval=t_eval)
 
@@ -232,11 +232,18 @@ class ThreeMonomerPETRAFTKineticFitting():
         fracC = f_C / (f_A + f_B + f_C)
         totalfrac = ((f_iA - f_A) + (f_iB - f_B) + (f_iC - f_C)) / (f_iA + f_iB + f_iC)
 
-        idx = np.argmax(totalfrac > 0.9)
+        idx = np.argmax(totalfrac > 0.85) + 1
+
+        # print(totalfrac[idx], self.exp_data.iloc[-1,0])
+
+        while totalfrac[idx] < self.exp_data.iloc[-1,0]:
+            # print("adjusting")
+            idx += 1
 
         return fracA[:idx], fracB[:idx], totalfrac[:idx]
     
     def _sum_square_residuals(self, pred_X, pred_F, i):
+        # print("SSR", pred_X[-1], self.exp_data.iloc[-1,0])
         interpolator = interp1d(pred_X, pred_F, kind='linear')
         y_interpolated = interpolator(self.exp_data.iloc[:,0])
 
@@ -249,36 +256,30 @@ class ThreeMonomerPETRAFTKineticFitting():
         k_AA = 1.
         k_BB = 1.
         k_CC = 1.
+        t_max = 100.
 
-        print(k)
-        sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d)
+        print(k, t_max)
+
+        sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d, t_max=t_max)
         pred_F1, pred_F2, pred_X = self._convert_XF(sol)
-        loss2 = self._sum_square_residuals(pred_X, pred_F2, 2)
 
+        while pred_F1.shape[0] < 20:
+            t_max += 100
+            sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d, t_max=t_max)
+            pred_F1, pred_F2, pred_X = self._convert_XF(sol)
+            
+        loss2 = self._sum_square_residuals(pred_X, pred_F2, 2)
         loss1 = self._sum_square_residuals(pred_X, pred_F1, 1)
 
         return loss1 + loss2
-    
-    def _objective2(self, k):
-        k_AB, k_AC, k_BA, k_BC, k_CA, k_CB = k
-        k_AA = 1.
-        k_BB = 1.
-        k_CC = 1.
-
-        sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d)
-        pred_F1, pred_F2, pred_X = self._convert_XF(sol)
-
-        loss2 = self._sum_square_residuals(pred_X, pred_F2, 2)
-
-        return loss2
-    
-    def display_overlay(self, new_k):
+      
+    def display_overlay(self, new_k, t_max):
         k_AB, k_AC, k_BA, k_BC, k_CA, k_CB = new_k
         k_AA = 1
         k_BB = 1
         k_CC = 1
 
-        sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d)
+        sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d, t_max)
         pred_F1, pred_F2, pred_X = self._convert_XF(sol)
 
         plt.scatter(self.exp_data.iloc[:,0], self.exp_data.iloc[:,1], s=1, c='#407abd')
@@ -293,7 +294,7 @@ class ThreeMonomerPETRAFTKineticFitting():
     def extract_rates(self, r_1A, r_2A, r_1B, r_2B, r_1C, r_2C):
         k = [1/r_1A, 1/r_2A, 1/r_1B, 1/r_2B, 1/r_1C, 1/r_2C]
 
-        k = minimize(fun=self._objective1, x0=k, method='L-BFGS-B', bounds=[(0.01,20),(0.01,20),(0.01,20),(0.01,20),(0.01,20),(0.01,20)])
+        k = minimize(fun=self._objective1, x0=k, method='L-BFGS-B', bounds=[(0.01,10),(0.01,10),(0.01,10),(0.01,10),(0.01,10),(0.01,10)])
         # k = minimize(fun=self._objective2, x0=k.x, method='CG', bounds=[(0,20),(0,20),(0,20),(0,20),(0,20),(0,20)], options={'maxiter': 1})
         # k = minimize(fun=self._objective1, x0=k.x, method='CG', bounds=[(0,20),(0,20),(0,20),(0,20),(0,20),(0,20)], options={'maxiter': 1})
         print("Converged rates are", k.x)

@@ -38,7 +38,7 @@ class PetRAFTKineticFitting():
 
         return dxdt
     
-    def _integrate_ODE(self, k_AA, k_AB, k_BA, k_BB):
+    def _integrate_ODE(self, k_AA, k_AB, k_BA, k_BB, t_max):
         # initial condition
         x0 = np.zeros((10))
         x0[0] = 1.
@@ -47,8 +47,8 @@ class PetRAFTKineticFitting():
 
         # parameters
         param_tuple = (k_s, k_j, k_AA, k_AB, k_BA, k_BB, k_c, k_d)
-        t_span = (0, 100.0)
-        t_eval = np.linspace(0, 100., 10000)
+        t_span = (0, t_max)
+        t_eval = np.linspace(0, t_max, int(t_max*10))
 
         sol = solve_ivp(self._ODE, t_span, x0, args=param_tuple, t_eval=t_eval)
 
@@ -70,8 +70,11 @@ class PetRAFTKineticFitting():
         fracA = f_A / (f_A + f_B)
         totalfrac = ((f_iA - f_A) + (f_iB - f_B)) / (f_iA + f_iB)
 
-        idx = np.argmax(totalfrac > 0.8)
-        # print(totalfrac)
+        idx = np.argmax(totalfrac > (self.exp_data.iloc[-1,0] + 0.1)) + 1
+        
+        while totalfrac[idx] < self.exp_data.iloc[-1,0]:
+            # print("adjusting")
+            idx += 1
 
         return fracA[:idx], totalfrac[:idx]
     
@@ -87,9 +90,16 @@ class PetRAFTKineticFitting():
         k_AA, k_BB = k
         k_AB = 1.
         k_BA = 1.
+        t_max = 100.
 
-        sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB)
+        sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB, t_max)
         pred_F, pred_X = self._convert_XF(sol)
+
+        while pred_F1.shape[0] < 20:
+            t_max += 100
+            sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB, t_max)
+            pred_F1, pred_X = self._convert_XF(sol)
+        
         loss = self._sum_square_residuals(pred_X, pred_F)
         print(k)
 

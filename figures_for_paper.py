@@ -1,4 +1,4 @@
-from simulation_functions.KMC_functions import SequenceEnsemble
+from simulation_functions.KMC_functions import PETRAFTSequenceEnsemble
 from analysis_functions.sequence_statistics import ChainLengthDispersity, MonomerFrequency
 from analysis_functions.kmer_representation import ConstructGraph
 import numpy as np
@@ -26,15 +26,15 @@ from fitting_functions.ODE_solving import PetRAFTKineticFitting
 ########################## symmetrically alternating ############################
 exp_data = 1
 
-fit = PetRAFTKineticFitting(exp_data, 70, 30)
-A_conv, B_conv = fit.predict_conversion(0.01,0.01)
-conv = np.array([A_conv, B_conv])
+# fit = PetRAFTKineticFitting(exp_data, 70, 30)
+# A_conv, B_conv = fit.predict_conversion(0.01,0.01)
+# conv = np.array([A_conv, B_conv])
 
 # r_matrix = np.array([
 #     [0.01, 1],
 #     [1, 0.01]
 # ])
-# seq = SequenceEnsemble(1000)
+# seq = PETRAFTSequenceEnsemble(100)
 # alt = seq.run_statistical(np.array([70.,30.]), 0.05, r_matrix, conv)
 
 # np.savetxt("alt_seqs.csv",alt)
@@ -46,13 +46,14 @@ conv = np.array([A_conv, B_conv])
 # A_conv, B_conv = fit.predict_conversion(4.,4.)
 # conv = np.array([A_conv, B_conv])
 
-# r_matrix = np.array([
-#     [4., 1.],
-#     [1., 4.]
-# ])
-# seq = SequenceEnsemble(1000)
-# blocky = seq.run_statistical(np.array([70.,30.]), 0.05, r_matrix, conv)
-
+r_matrix = np.array([
+    [4., 1.],
+    [1., 4.]
+])
+seq = PETRAFTSequenceEnsemble(100)
+blocky = seq.run_statistical(np.array([70.,30.]), 0.01, r_matrix, np.array([0.9,0.9]))
+plt.imshow(blocky)
+plt.show()
 # np.savetxt("blocky.csv",blocky)
 
 ########################## statistical ############################
