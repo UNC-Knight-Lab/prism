@@ -22,6 +22,7 @@ class PetRAFTKineticFitting():
     
     def _ODE(self, t, x, k_s, k_j, k_AA, k_AB, k_BA, k_BB, k_c, k_d):
         cta, cta_r, R_r, a, b, x_a, x_b, x_ac, x_bc, d = x
+        pc = 0.01
 
         dxdt = np.zeros((10))
 
@@ -30,10 +31,10 @@ class PetRAFTKineticFitting():
         dxdt[2] = -k_j*R_r*a - k_j*R_r*b - k_d*R_r*x_a - k_d*R_r*x_b + k_s*cta
         dxdt[3] = -k_j*R_r*a - k_AA*x_a*a - k_BA*x_b*a
         dxdt[4] = -k_j*R_r*b - k_BB*x_b*b - k_AB*x_a*b
-        dxdt[5] = k_j*R_r*a + k_BA*x_b*a - k_AB*x_a*b - k_c*x_a*x_bc + k_c*x_ac*x_b - k_d*R_r*x_a - k_c*cta_r*x_a + k_c*x_ac
-        dxdt[6] = k_j*R_r*b + k_AB*x_a*b - k_BA*x_b*a - k_d*R_r*x_b - k_c*cta_r*x_b + k_c*x_a*x_bc - k_c*x_ac*x_b + k_c*x_bc
-        dxdt[7] = k_c*cta_r*x_a + k_c*x_bc*x_a - k_c*x_ac*x_b - k_c*x_ac
-        dxdt[8] = k_c*cta_r*x_b + k_c*x_ac*x_b - k_c*x_bc*x_a - k_c*x_bc
+        dxdt[5] = k_j*R_r*a + k_BA*x_b*a - k_AB*x_a*b - k_c*x_a*x_bc + k_c*x_ac*x_b - k_d*R_r*x_a - 100*k_c*cta_r*x_a + k_c*x_ac*pc
+        dxdt[6] = k_j*R_r*b + k_AB*x_a*b - k_BA*x_b*a - k_d*R_r*x_b - 100*k_c*cta_r*x_b + k_c*x_a*x_bc - k_c*x_ac*x_b + k_c*x_bc*pc
+        dxdt[7] = 100*k_c*cta_r*x_a + k_c*x_bc*x_a - k_c*x_ac*x_b - k_c*x_ac*pc
+        dxdt[8] = 100*k_c*cta_r*x_b + k_c*x_ac*x_b - k_c*x_bc*x_a - k_c*x_bc*pc
         dxdt[9] = k_d*R_r*x_a + k_d*R_r*x_b
 
         return dxdt
