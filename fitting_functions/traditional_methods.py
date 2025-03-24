@@ -22,8 +22,8 @@ class MeyerLoweryFitting():
     def _fit(self, fA_0, fA, conv, r_A, r_B):
         fmodel = Model(self._meyer_lowery)
         params = fmodel.make_params(fA_0 = fA_0, 
-                                    r_A = {'value':r_A, 'min':0, 'max':5}, 
-                                    r_B = {'value':r_B, 'min':0, 'max':5}) # set guesses
+                                    r_A = {'value':r_A, 'min':1.1, 'max':2}, 
+                                    r_B = {'value':r_B, 'min':0, 'max':0.5}) # set guesses
         params['fA_0'].vary = False
         result = fmodel.fit(conv, x=fA, params=params, verbose=True)
 
@@ -39,7 +39,7 @@ class MeyerLoweryFitting():
 
         plt.scatter(fA, y)
         plt.scatter(fA, conv)
-        plt.ylim([0,1])
+        # plt.ylim([0,1])
         plt.show()
 
     def extract_rates(self, exp_data, r_A = 0.5, r_B = 0.5):

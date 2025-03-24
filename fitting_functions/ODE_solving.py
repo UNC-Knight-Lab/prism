@@ -4,10 +4,10 @@ from scipy.interpolate import interp1d
 from matplotlib import pyplot as plt
 from scipy.optimize import minimize
 
-k_s = 10
-k_j = 10
-k_c = 100
-k_d = 1
+k_s = 50
+k_j = 50
+k_c = 50
+k_d = 0.1
 
 class PetRAFTKineticFitting():
     def __init__(self, exp_data, A_mol, B_mol, data_index = None):
@@ -31,10 +31,10 @@ class PetRAFTKineticFitting():
         dxdt[2] = -k_j*R_r*a - k_j*R_r*b - k_d*R_r*x_a - k_d*R_r*x_b + k_s*cta
         dxdt[3] = -k_j*R_r*a - k_AA*x_a*a - k_BA*x_b*a
         dxdt[4] = -k_j*R_r*b - k_BB*x_b*b - k_AB*x_a*b
-        dxdt[5] = k_j*R_r*a + k_BA*x_b*a - k_AB*x_a*b - k_c*x_a*x_bc + k_c*x_ac*x_b - k_d*R_r*x_a - 100*k_c*cta_r*x_a + k_c*x_ac*pc
-        dxdt[6] = k_j*R_r*b + k_AB*x_a*b - k_BA*x_b*a - k_d*R_r*x_b - 100*k_c*cta_r*x_b + k_c*x_a*x_bc - k_c*x_ac*x_b + k_c*x_bc*pc
-        dxdt[7] = 100*k_c*cta_r*x_a + k_c*x_bc*x_a - k_c*x_ac*x_b - k_c*x_ac*pc
-        dxdt[8] = 100*k_c*cta_r*x_b + k_c*x_ac*x_b - k_c*x_bc*x_a - k_c*x_bc*pc
+        dxdt[5] = k_j*R_r*a + k_BA*x_b*a - k_AB*x_a*b - k_c*x_a*x_bc + k_c*x_ac*x_b - k_d*R_r*x_a - k_c*cta_r*x_a + k_c*x_ac*pc
+        dxdt[6] = k_j*R_r*b + k_AB*x_a*b - k_BA*x_b*a - k_d*R_r*x_b - k_c*cta_r*x_b + k_c*x_a*x_bc - k_c*x_ac*x_b + k_c*x_bc*pc
+        dxdt[7] = k_c*cta_r*x_a + k_c*x_bc*x_a - k_c*x_ac*x_b - k_c*x_ac*pc
+        dxdt[8] = k_c*cta_r*x_b + k_c*x_ac*x_b - k_c*x_bc*x_a - k_c*x_bc*pc
         dxdt[9] = k_d*R_r*x_a + k_d*R_r*x_b
 
         return dxdt
@@ -71,12 +71,14 @@ class PetRAFTKineticFitting():
         fracA = f_A / (f_A + f_B)
         totalfrac = ((f_iA - f_A) + (f_iB - f_B)) / (f_iA + f_iB)
 
-        idx = np.argmax(totalfrac > self.exp_data.iloc[-1,0]) + 1
-        
-        while totalfrac[idx] < self.exp_data.iloc[-1,0]:
-            idx += 1
+        indices = np.where(totalfrac > self.exp_data.iloc[-1,0])[0]  # Get indices where condition is met
+        idx = indices[0] if indices.size > 0 else -1  # Return first valid index or -1 if none found
 
-        return fracA[:idx], totalfrac[:idx]
+        if idx == -1 or idx + 1 == totalfrac.shape:
+            return np.array([]), np.array([])
+        else:
+            idx += 1
+            return fracA[:idx], totalfrac[:idx]
     
     def _sum_square_residuals(self, pred_X, pred_F):
         interpolator = interp1d(pred_X, pred_F, kind='linear')
@@ -95,17 +97,17 @@ class PetRAFTKineticFitting():
         sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB, t_max)
         pred_F, pred_X = self._convert_XF(sol)
 
-        while pred_F1.shape[0] < 20:
+        while pred_F.shape[0] < 20:
             t_max += 100
             sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB, t_max)
-            pred_F1, pred_X = self._convert_XF(sol)
+            pred_F, pred_X = self._convert_XF(sol)
         
         loss = self._sum_square_residuals(pred_X, pred_F)
         print(k)
 
         return loss
     
-    def display_overlay(self, new_k, t_max):
+    def display_overlay(self, new_k, t_max = 100.):
         k_AA, k_BB = new_k
         k_AB = 1
         k_BA = 1
@@ -124,7 +126,7 @@ class PetRAFTKineticFitting():
         plt.show()
 
 
-    def reconstruct_kinetics(self, k_AB, k_BA, t_max):
+    def reconstruct_kinetics(self, k_AB, k_BA, t_max = 100.):
 
         k_AA = 1
         k_BB = 1
@@ -135,7 +137,7 @@ class PetRAFTKineticFitting():
             plt.plot(sol.t, sol.y[i])
         plt.show()
     
-    def predict_conversion(self, r_A, r_B, t_max):
+    def predict_conversion(self, r_A, r_B, t_max = 100.):
         k_AB = 1
         k_BA = 1
         k_AA = r_A
@@ -149,10 +151,11 @@ class PetRAFTKineticFitting():
         return A_conv, B_conv
 
     
-    def extract_rates(self, r_1, r_2, t_max):
+    def extract_rates(self, r_1, r_2, t_max = 100.):
         k = [r_1, r_2]
-        new_k = minimize(fun=self._objective, x0=k, method='L-BFGS-B', bounds=[(0.01,20),(0.01,20)])
+        new_k = minimize(fun=self._objective, x0=k, method='L-BFGS-B', bounds=[(0.01,10),(0.01,10)])
         print("Converged rates are", new_k.x)
+        np.savetxt("two_monomer_converged_rates.csv", new_k.x, delimiter=",", fmt="%f")
 
         self.display_overlay(new_k.x, t_max)
 

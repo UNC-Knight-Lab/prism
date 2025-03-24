@@ -5,9 +5,9 @@ from scipy.interpolate import interp1d
 from matplotlib import pyplot as plt
 from scipy.optimize import least_squares, minimize
 
-k_s = 100
-k_j = 10
-k_c = 100
+k_s = 50
+k_j = 50
+k_c = 50
 k_d = 0.1
 
 class ThreeMonomerThermalRAFTKineticFitting():
@@ -97,7 +97,6 @@ class ThreeMonomerThermalRAFTKineticFitting():
         k_BB = 1.
         k_CC = 1.
 
-        print(k)
         sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d)
         pred_F1, pred_F2, pred_X = self._convert_XF(sol)
         loss2 = self._sum_square_residuals(pred_X, pred_F2, 2)
@@ -105,19 +104,6 @@ class ThreeMonomerThermalRAFTKineticFitting():
         loss1 = self._sum_square_residuals(pred_X, pred_F1, 1)
 
         return loss1 + loss2
-    
-    def _objective2(self, k):
-        k_AB, k_AC, k_BA, k_BC, k_CA, k_CB = k
-        k_AA = 1.
-        k_BB = 1.
-        k_CC = 1.
-
-        sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d)
-        pred_F1, pred_F2, pred_X = self._convert_XF(sol)
-
-        loss2 = self._sum_square_residuals(pred_X, pred_F2, 2)
-
-        return loss2
     
     def display_overlay(self, new_k):
         k_AB, k_AC, k_BA, k_BC, k_CA, k_CB = new_k
@@ -139,7 +125,7 @@ class ThreeMonomerThermalRAFTKineticFitting():
     def extract_rates(self, r_1A, r_2A, r_1B, r_2B, r_1C, r_2C):
         k = [1/r_1A, 1/r_2A, 1/r_1B, 1/r_2B, 1/r_1C, 1/r_2C]
 
-        k = minimize(fun=self._objective1, x0=k, method='BFGS', bounds=[(0,20),(0,20),(0,20),(0,20),(0,20),(0,20)], options={'maxiter': 10})
+        k = minimize(fun=self._objective1, x0=k, method='L-BFGS-B', bounds=[(0,5),(0,5),(0,5),(0,5),(0,5),(0,5)])
         # k = minimize(fun=self._objective2, x0=k.x, method='CG', bounds=[(0,20),(0,20),(0,20),(0,20),(0,20),(0,20)], options={'maxiter': 1})
         # k = minimize(fun=self._objective1, x0=k.x, method='CG', bounds=[(0,20),(0,20),(0,20),(0,20),(0,20),(0,20)], options={'maxiter': 1})
         print("Converged rates are", k.x)
@@ -185,12 +171,12 @@ class ThreeMonomerPETRAFTKineticFitting():
         dxdt[3] = -k_j*R_r*a - k_AA*x_a*a - k_BA*x_b*a - k_CA*x_c*a
         dxdt[4] = -k_j*R_r*b - k_AB*x_a*b - k_BB*x_b*b - k_CB*x_c*b
         dxdt[5] = -k_j*R_r*c - k_AC*x_a*c - k_BC*x_b*c - k_CC*x_c*c
-        dxdt[6] = k_j*R_r*a + k_BA*x_b*a - k_AB*x_a*b - k_AC*x_a*c + k_CA*x_c*a - 100*k_c*x_a*cta_r - k_c*x_a*x_bc + k_c*x_ac*x_b + k_c*x_ac*x_c - k_c*x_cc*x_a - k_d*R_r*x_a + k_c*x_ac*pc
-        dxdt[7] = k_j*R_r*b - k_BA*x_b*a + k_AB*x_a*b - k_BC*x_b*c + k_CB*x_c*b - 100*k_c*x_b*cta_r + k_c*x_a*x_bc - k_c*x_ac*x_b + k_c*x_bc*x_c - k_c*x_cc*x_b - k_d*R_r*x_b + k_c*x_bc*pc
-        dxdt[8] = k_j*R_r*c + k_AC*x_a*c + k_BC*x_b*c - k_CA*x_c*a - k_CB*x_c*b - 100*k_c*x_c*cta_r - k_c*x_bc*x_c + k_c*x_cc*x_b - k_c*x_ac*x_c + k_c*x_cc*x_a - k_d*R_r*x_c + k_c*x_cc*pc
-        dxdt[9] = 100*k_c*x_a*cta_r - k_c*x_ac*x_b + k_c*x_bc*x_a - k_c*x_ac*c + k_c*x_cc*x_a - k_c*x_ac*pc
-        dxdt[10] = 100*k_c*x_b*cta_r - k_c*x_bc*x_c + k_c*x_cc*x_b + k_c*x_ac*x_b - k_c*x_bc*x_a - k_c*x_bc*pc
-        dxdt[11] = 100*k_c*x_c*cta_r + k_c*x_bc*x_c - k_c*x_cc*x_b + k_c*x_ac*x_c - k_c*x_cc*x_a - k_c*x_cc*pc
+        dxdt[6] = k_j*R_r*a + k_BA*x_b*a - k_AB*x_a*b - k_AC*x_a*c + k_CA*x_c*a - k_c*x_a*cta_r - k_c*x_a*x_bc + k_c*x_ac*x_b + k_c*x_ac*x_c - k_c*x_cc*x_a - k_d*R_r*x_a + k_c*x_ac*pc
+        dxdt[7] = k_j*R_r*b - k_BA*x_b*a + k_AB*x_a*b - k_BC*x_b*c + k_CB*x_c*b - k_c*x_b*cta_r + k_c*x_a*x_bc - k_c*x_ac*x_b + k_c*x_bc*x_c - k_c*x_cc*x_b - k_d*R_r*x_b + k_c*x_bc*pc
+        dxdt[8] = k_j*R_r*c + k_AC*x_a*c + k_BC*x_b*c - k_CA*x_c*a - k_CB*x_c*b - k_c*x_c*cta_r - k_c*x_bc*x_c + k_c*x_cc*x_b - k_c*x_ac*x_c + k_c*x_cc*x_a - k_d*R_r*x_c + k_c*x_cc*pc
+        dxdt[9] = k_c*x_a*cta_r - k_c*x_ac*x_b + k_c*x_bc*x_a - k_c*x_ac*c + k_c*x_cc*x_a - k_c*x_ac*pc
+        dxdt[10] = k_c*x_b*cta_r - k_c*x_bc*x_c + k_c*x_cc*x_b + k_c*x_ac*x_b - k_c*x_bc*x_a - k_c*x_bc*pc
+        dxdt[11] = k_c*x_c*cta_r + k_c*x_bc*x_c - k_c*x_cc*x_b + k_c*x_ac*x_c - k_c*x_cc*x_a - k_c*x_cc*pc
         dxdt[12] = k_d*R_r*(x_a + x_b + x_c)
 
         return dxdt
@@ -234,15 +220,14 @@ class ThreeMonomerPETRAFTKineticFitting():
         fracC = f_C / (f_A + f_B + f_C)
         totalfrac = ((f_iA - f_A) + (f_iB - f_B) + (f_iC - f_C)) / (f_iA + f_iB + f_iC)
 
-        idx = np.argmax(totalfrac > self.exp_data.iloc[-1,0]) + 1
+        indices = np.where(totalfrac > self.exp_data.iloc[-1,0])[0]  # Get indices where condition is met
+        idx = indices[0] if indices.size > 0 else -1  # Return first valid index or -1 if none found
 
-        # print(totalfrac[idx], self.exp_data.iloc[-1,0])
-
-        while totalfrac[idx] < self.exp_data.iloc[-1,0]:
-            # print("adjusting")
+        if idx == -1 or idx + 1 == totalfrac.shape:
+            return np.array([]), np.array([]), np.array([]), np.array([])
+        else:
             idx += 1
-
-        return fracA[:idx], fracB[:idx], totalfrac[:idx]
+            return fracA[:idx], fracB[:idx], fracC[:idx], totalfrac[:idx]
     
     def _sum_square_residuals(self, pred_X, pred_F, i):
         # print("SSR", pred_X[-1], self.exp_data.iloc[-1,0])
@@ -260,50 +245,52 @@ class ThreeMonomerPETRAFTKineticFitting():
         k_CC = 1.
         t_max = 100.
 
-        print(k, t_max)
-
         sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d, t_max=t_max)
-        pred_F1, pred_F2, pred_X = self._convert_XF(sol)
+        pred_F1, pred_F2, pred_F3, pred_X = self._convert_XF(sol)
 
         while pred_F1.shape[0] < 20:
             t_max += 100
             sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d, t_max=t_max)
-            pred_F1, pred_F2, pred_X = self._convert_XF(sol)
+            pred_F1, pred_F2, pred_F3, pred_X = self._convert_XF(sol)
             
         loss2 = self._sum_square_residuals(pred_X, pred_F2, 2)
         loss1 = self._sum_square_residuals(pred_X, pred_F1, 1)
+        loss3 = self._sum_square_residuals(pred_X, pred_F3, 3)
 
-        return loss1 + loss2
+        print(k, t_max, loss1 + loss2 + loss3)
+
+        return loss1 + loss2 + loss3
       
-    def display_overlay(self, new_k, t_max):
+    def display_overlay(self, new_k, t_max = 100.):
         k_AB, k_AC, k_BA, k_BC, k_CA, k_CB = new_k
         k_AA = 1
         k_BB = 1
         k_CC = 1
 
         sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d, t_max)
-        pred_F1, pred_F2, pred_X = self._convert_XF(sol)
+        pred_F1, pred_F2, pred_F3, pred_X = self._convert_XF(sol)
 
-        plt.scatter(self.exp_data.iloc[:,0], self.exp_data.iloc[:,1], s=1, c='#407abd')
-        plt.scatter(self.exp_data.iloc[:,0], self.exp_data.iloc[:,2], s=1, c='#000000')
-        plt.plot(pred_X,pred_F1, lw=1, c='#407abd')
-        plt.plot(pred_X,pred_F2, lw=1, c='#000000')
-        np.savetxt("pred_X.csv",pred_X)
-        np.savetxt("pred_F1.csv",pred_F1)
-        np.savetxt("pred_F2.csv",pred_F2)
+        # plt.scatter(self.exp_data.iloc[:,0], self.exp_data.iloc[:,1])
+        # plt.scatter(self.exp_data.iloc[:,0], self.exp_data.iloc[:,2])
+        # plt.plot(pred_X,pred_F1)
+        # plt.plot(pred_X,pred_F2)
+        # plt.show()
+        np.savetxt("three_pred_X.csv",pred_X)
+        np.savetxt("three_pred_F1.csv",pred_F1)
+        np.savetxt("three_pred_F2.csv",pred_F2)
+        np.savetxt("three_pred_F3.csv",pred_F3)
 
     
     def extract_rates(self, r_1A, r_2A, r_1B, r_2B, r_1C, r_2C):
         k = [1/r_1A, 1/r_2A, 1/r_1B, 1/r_2B, 1/r_1C, 1/r_2C]
 
-        k = minimize(fun=self._objective1, x0=k, method='L-BFGS-B', bounds=[(0.01,10),(0.01,10),(0.01,10),(0.01,10),(0.01,10),(0.01,10)])
-        # k = minimize(fun=self._objective2, x0=k.x, method='CG', bounds=[(0,20),(0,20),(0,20),(0,20),(0,20),(0,20)], options={'maxiter': 1})
-        # k = minimize(fun=self._objective1, x0=k.x, method='CG', bounds=[(0,20),(0,20),(0,20),(0,20),(0,20),(0,20)], options={'maxiter': 1})
+        k = minimize(fun=self._objective1, x0=k, method='L-BFGS-B', bounds=[(0.01,5),(0.01,5),(0.01,5),(0.01,5),(0.01,5),(0.01,5)])
         print("Converged rates are", k.x)
+        np.savetxt("three_converged_rates.csv", k.x, delimiter=",", fmt="%f")
 
         self.display_overlay(k.x)
     
-    def test_values(self, r_1A, r_2A, r_1B, r_2B, r_1C, r_2C):
+    def test_values(self, r_1A, r_2A, r_1B, r_2B, r_1C, r_2C, t_max = 100.):
         k_AB = 1/r_1A
         k_AC = 1/r_2A
         k_BA = 1/r_1B
@@ -314,13 +301,12 @@ class ThreeMonomerPETRAFTKineticFitting():
         k_BB = 1.
         k_CC = 1.
 
-        sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d)
+        sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d, t_max)
         # plt.plot(sol.y[3])
         # plt.plot(sol.y[4])
         # plt.plot(sol.y[5])
         # plt.show()
-        pred_F1, pred_F2, pred_X = self._convert_XF(sol)
-
+        pred_F1, pred_F2, pred_F3, pred_X = self._convert_XF(sol)
         plt.scatter(pred_X,pred_F1)
         plt.scatter(pred_X,pred_F2)
         plt.ylim([0,1.1])

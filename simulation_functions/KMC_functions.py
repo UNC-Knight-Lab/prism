@@ -446,7 +446,7 @@ class PETRAFTSequenceEnsemble():
         rates_add[num_monomers,2] = sum(rates_add[:,0])
 
         # chain caps with Z_group
-        rates_add[num_monomers+1,0] = Z_mmol*k_cap*100
+        rates_add[num_monomers+1,0] = Z_mmol*k_cap*10
         rates_add[num_monomers+1,1] = num_monomers + 2
         rates_add[num_monomers+1,2] = sum(rates_add[:,0])
 
@@ -493,7 +493,7 @@ class PETRAFTSequenceEnsemble():
         rates_cap = np.zeros((2,2))
         
         # chain uncaps with another chain
-        rates_cap[0,0] = k_cap*(num_uncapped*delta)
+        rates_cap[0,0] = k_cap*num_uncapped*delta
         rates_cap[0,1] = sum(rates_cap[:,0])
 
         # chain uncaps with photocatalyst
@@ -514,11 +514,11 @@ class PETRAFTSequenceEnsemble():
         rates_cap = np.zeros((2,2))
         
         # chain caps with another chain
-        rates_cap[0,0] = k_cap*(capped_chains*delta)
+        rates_cap[0,0] = k_cap*capped_chains*delta
         rates_cap[0,1] = sum(rates_cap[:,0])
 
         # chain caps with Z group
-        rates_cap[1,0] = k_cap*Z_mmol*100
+        rates_cap[1,0] = k_cap*Z_mmol*10
         rates_cap[1,1] = sum(rates_cap[:,0])
 
         u = np.random.random()*rates_cap[-1,1]
@@ -577,7 +577,7 @@ class PETRAFTSequenceEnsemble():
 
     def _run_first_block(self, mmol_feed, num_monomers, pc, r_matrix, conversion):
         delta = 1 / self.n_chains
-        pc_mmol = 0.5*pc # excited radical species
+        pc_mmol = pc # excited radical species
         capped_chains = 0.
 
         uncapped_index = 0
@@ -592,8 +592,9 @@ class PETRAFTSequenceEnsemble():
             mmol_feed = self._growth_update(mmol_feed, new, i, delta, monomer_indexes, num_monomers)
             
         self.chain_status[:] = 1
-        R_mmol = 1.
+        R_mmol = 0.
         Z_mmol = 1.
+        Z_mmol_list = []
 
         while capped_chains <= 0.9*self.n_chains:
 
@@ -629,6 +630,11 @@ class PETRAFTSequenceEnsemble():
                     self._uncapping_update(chain, uncapped_index)
                     Z_mmol += delta
                     capped_chains -= 1
+            
+            Z_mmol_list.append(Z_mmol)
+            
+        plt.plot(Z_mmol_list)
+        plt.show()
 
         while np.max(self.lengths) <= self.max_DP:
             chain = random.choice(np.arange(0,self.n_chains))
@@ -662,11 +668,15 @@ class PETRAFTSequenceEnsemble():
                     Z_mmol += delta
                     capped_chains -= 1
             # print(mmol_feed)
-                                
+            Z_mmol_list.append(Z_mmol)
+                    
             result = (mmol_feed - left_over) <= delta
 
             if result.all() == True:
                 break
+        
+        plt.plot(Z_mmol_list)
+        plt.show()
 
         return capped_chains, dead_index
 

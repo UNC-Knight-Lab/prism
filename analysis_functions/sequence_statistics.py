@@ -1,10 +1,7 @@
-from distutils.ccompiler import new_compiler
 from itertools import product
 import numpy as np
 from matplotlib import pyplot as plt
 import pandas as pd
-
-from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances
 from scipy.stats import mode
 
 class MonomerFrequency():

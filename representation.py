@@ -3,7 +3,7 @@ import pandas as pd
 from analysis_functions.sequence_statistics import MonomerFrequency, EnsembleSimilarity
 from simulation_functions.KMC_functions import PETRAFTSequenceEnsemble
 from matplotlib import pyplot as plt
-from matplotlib.colors import ListedColormap
+from matplotlib.colors import LinearSegmentedColormap
 
 np.seterr(all='raise')
 ######################### UNIVERSAL R MATRIX ############################
@@ -34,14 +34,13 @@ r_matrix = np.array([
 
 # ########################## t1 ############################
 
-t1_feed = np.array([[30., 0., 0.],
-                [15., 20., 5.],
-                [30., 0., 0.]])
+# t1_feed = np.array([[30., 0., 0.],
+#                 [15., 20., 5.],
+#                 [30., 0., 0.]])
 
-seq = PETRAFTSequenceEnsemble(100)
-t1 = seq.run_block_copolymer(t1_feed, 0.01, r_matrix)
-plt.imshow(t1)
-plt.show()
+# seq = PETRAFTSequenceEnsemble(100)
+# t1 = seq.run_block_copolymer(t1_feed, 0.01, r_matrix)
+
 # np.savetxt("t1_seqs.csv",t1)
 
 # ########################## t2 ############################
@@ -98,12 +97,12 @@ plt.show()
 
 ########################## chemical patterning plots ############################
 
-# d1 = np.loadtxt('d1_seqs.csv', delimiter=' ')
-# d2 = np.loadtxt('d2_seqs.csv', delimiter=' ')
-# t1 = np.loadtxt('t1_seqs.csv', delimiter=' ')
-# t2 = np.loadtxt('t2_seqs.csv', delimiter=' ')
-# t3 = np.loadtxt('t3_seqs.csv', delimiter=' ')
-# t4 = np.loadtxt('t4_seqs.csv', delimiter=' ')
+d1 = np.loadtxt('sample_data/seq_reconstruction/thermal/multiblocks/d1_seqs.csv', delimiter=' ')
+d2 = np.loadtxt('sample_data/seq_reconstruction/thermal/multiblocks/d2_seqs.csv', delimiter=' ')
+t1 = np.loadtxt('sample_data/seq_reconstruction/thermal/multiblocks/t1_seqs.csv', delimiter=' ')
+t2 = np.loadtxt('sample_data/seq_reconstruction/thermal/multiblocks/t2_seqs.csv', delimiter=' ')
+t3 = np.loadtxt('sample_data/seq_reconstruction/thermal/multiblocks/t3_seqs.csv', delimiter=' ')
+t4 = np.loadtxt('sample_data/seq_reconstruction/thermal/multiblocks/t4_seqs.csv', delimiter=' ')
 
 # m = MonomerFrequency(t3, 3)
 # pattern1 = m.chemical_patterning(features = [-0.4, 4.5, -4.5], method = 'mean')
@@ -111,19 +110,19 @@ plt.show()
 # m = MonomerFrequency(t4, 3)
 # pattern2 = m.chemical_patterning(features = [-0.4, 4.5, -4.5], method = 'mean')
 
-# m = MonomerFrequency(d2, 3)
-# pattern2 = m.chemical_patterning(features = [-0.4, 4.5, -4.5], method = 'mean')
+# m = MonomerFrequency(d1, 3)
+# pattern1 = m.chemical_patterning(features = [-0.4, 4.5, -4.5], method = 'mean')
 
 # m = MonomerFrequency(d2, 3)
 # pattern2 = m.chemical_patterning(features = [-0.4, 4.5, -4.5], method = 'mean')
 
-# plt.figure(figsize=(1.54,1.10))
+# plt.figure(figsize=(1.6,1.2))
 # plt.plot(pattern1, lw=1)
 # plt.plot(pattern2, lw=1)
-# plt.yticks(np.arange(-0.5, 3.0, step=0.5))
-# plt.xticks(np.arange(0, 140, step=25))
+# plt.yticks(np.arange(-1.5, 3.1, step=0.5))
+# plt.xticks(np.arange(0, 151, step=25))
 # # plt.show()
-# plt.savefig('t3_t4_chemical_patterning.pdf')
+# plt.savefig('d1_d2_chemical_patterning.pdf')
 
 
 ########################## sequence heatmap ###########################
@@ -137,50 +136,53 @@ plt.show()
 # similarity3 = np.zeros((6,6))
 # similarity = np.zeros((6,6))
 
+# target_hex = "#491B4F"
+# custom_cmap = LinearSegmentedColormap.from_list("custom_cmap", ["#FFFFFF", target_hex])
+
 
 # for s1 in range(6):
 #     for s2 in range(s1+1):
 #         e = EnsembleSimilarity(all_data[s1], all_data[s2], num_monomers=3)
-#         scores = e.global_difference(k=5)
-#         # similarity1[s1,s2], similarity2[s1,s2], similarity3[s1,s2] = scores
-#         similarity[s1,s2] = scores
+#         scores = e.global_difference(k=1)
+#         similarity1[s1,s2], similarity2[s1,s2], similarity3[s1,s2] = scores
+#         # similarity[s1,s2] = scores
 
 # s1 = np.where(similarity1 == 0, np.nan, similarity1)
 # s2 = np.where(similarity2 == 0, np.nan, similarity2)
 # s3 = np.where(similarity3 == 0, np.nan, similarity3)
-# s = np.where(similarity == 0, np.nan, similarity)
+# # s = np.where(similarity == 0, np.nan, similarity)
+
+# # plt.figure()
+# # plt.imshow(s, cmap='magma_r',vmin=0, vmax=1.0)
+# # plt.colorbar()
+# # plt.savefig("fivemonomer.svg", dpi=300)
+
 
 # plt.figure()
-# plt.imshow(s, cmap='magma_r',vmin=0, vmax=1.0)
-# plt.colorbar()
-# plt.savefig("fivemonomer.svg", dpi=300)
-
-
-# plt.figure()
-# plt.imshow(s1, cmap='magma_r',vmin=0, vmax=1.0)
+# plt.imshow(s1, cmap=custom_cmap,vmin=0, vmax=1.0)
 # plt.colorbar()
 # plt.savefig("onemonomer_1.svg", dpi=300)
 
 # plt.figure()
-# plt.imshow(s2, cmap='magma_r',vmin=0, vmax=1.0)
+# plt.imshow(s2, cmap=custom_cmap,vmin=0, vmax=1.0)
 # plt.colorbar()
 # plt.savefig("onemonomer_2.svg", dpi=300)
 
 # plt.figure()
-# plt.imshow(s3, cmap='magma_r',vmin=0, vmax=1.0)
+# plt.imshow(s3, cmap=custom_cmap,vmin=0, vmax=1.0)
 # plt.colorbar()
 # plt.savefig("onemonomer_3.svg", dpi=300)
 
 ########################## autocorrelation ###########################
-# e = EnsembleSimilarity(d1, d2, num_monomers=3)
-# d1, d2 = e.correlation([2,3])
+e = EnsembleSimilarity(d1, d2, num_monomers=3)
+d1, d2 = e.correlation(1)
 
-# e = EnsembleSimilarity(t1, t2, num_monomers=3)
-# a1, a2 = e.correlation(1)
+e = EnsembleSimilarity(t1, t2, num_monomers=3)
+a1, a2 = e.correlation(1)
 
 
-# e = EnsembleSimilarity(t3, t4, num_monomers=3)
-# a3, a4 = e.correlation(1)
+e = EnsembleSimilarity(t3, t4, num_monomers=3)
+a3, a4 = e.correlation(1)
 
 #### PAIRWISE
 # e = EnsembleSimilarity(d1, d2, num_monomers=3)
@@ -190,17 +192,16 @@ plt.show()
 # a1, a2 = e.correlation([2,3], corr_type='pair')
 
 
-# e = EnsembleSimilarity(t3, t4, num_monomers=3)
 # a3, a4 = e.correlation([2,3], corr_type='pair')
 
-# plt.figure(figsize=(1.54,1.10))
-# # plt.plot(a1, lw=1)
-# # plt.plot(a2, lw=1)
-# plt.plot(a3, lw=1)
-# plt.plot(a4, lw=1)
+plt.figure(figsize=(1.6,1.2))
+plt.plot(a1, lw=1)
+# plt.plot(a2, lw=1)
+plt.plot(a3, lw=1)
+plt.plot(a4, lw=1)
 # plt.plot(d1, lw=1)
 # plt.plot(d2, lw=1)
-# plt.yticks(np.arange(0, 0.25, step=0.05))
-# plt.xticks(np.arange(0, 140, step=25))
-# # plt.show()
-# plt.savefig('pair_corr.pdf', dpi=300)
+plt.yticks(np.arange(0, 1.1, step=0.2))
+plt.xticks(np.arange(0, 151, step=25))
+# plt.show()
+plt.savefig('auto_corr.pdf', dpi=300)

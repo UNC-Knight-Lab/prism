@@ -1,8 +1,6 @@
 import numpy as np
-from collections import defaultdict
 import networkx as nx
 from matplotlib import pyplot as plt
-from matplotlib.patches import FancyArrowPatch, Arc
 import itertools
 import pandas as pd
 
@@ -223,7 +221,5 @@ class ConstructGraph():
             for i in range(self.sequences.shape[0]):
                 t = self._kmer_counting(self.sequences[i,:],kmer_mat, num_kmers, segment_size)
                 adj_matrix += (t / num_seq)
-        print(labels)
-        plt.imshow(adj_matrix, cmap='magma_r',vmin=0, vmax=0.45)
-        plt.colorbar()
-        plt.savefig("graph_heatmap.svg", dpi=300)
+        
+        return adj_matrix

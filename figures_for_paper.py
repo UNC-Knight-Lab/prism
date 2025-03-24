@@ -3,7 +3,7 @@ from analysis_functions.sequence_statistics import ChainLengthDispersity, Monome
 from analysis_functions.kmer_representation import ConstructGraph
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.colors import ListedColormap
+from matplotlib.colors import LinearSegmentedColormap
 import pandas as pd
 from fitting_functions.ODE_solving import PetRAFTKineticFitting
 
@@ -18,26 +18,30 @@ from fitting_functions.ODE_solving import PetRAFTKineticFitting
 #     [5., 1.],
 #     [1, 0.2]
 # ])
-# seq = SequenceEnsemble(1000)
-# pure = seq.run_statistical(np.array([70.,30.]), 0.05, r_matrix, conv)
+# seq = PETRAFTSequenceEnsemble(1000)
+# pure = seq.run_statistical(np.array([70.,30.]), 0.01, r_matrix, conv)
 
-# np.savetxt("pure_seqs.csv",pure)
+# np.savetxt("sample_data/seq_reconstruction/PET-RAFT_pure_seqs.csv",pure)
+# plt.imshow(pure)
+# plt.show()
+
 
 ########################## symmetrically alternating ############################
-exp_data = 1
+# exp_data = 1
 
 # fit = PetRAFTKineticFitting(exp_data, 70, 30)
-# A_conv, B_conv = fit.predict_conversion(0.01,0.01)
+# A_conv, B_conv = fit.predict_conversion(0.05,0.05)
 # conv = np.array([A_conv, B_conv])
 
 # r_matrix = np.array([
-#     [0.01, 1],
-#     [1, 0.01]
+#     [0.05, 1],
+#     [1, 0.05]
 # ])
-# seq = PETRAFTSequenceEnsemble(100)
-# alt = seq.run_statistical(np.array([70.,30.]), 0.05, r_matrix, conv)
-
-# np.savetxt("alt_seqs.csv",alt)
+# seq = PETRAFTSequenceEnsemble(1000)
+# alt = seq.run_statistical(np.array([70.,30.]), 0.01, r_matrix, conv)
+# np.savetxt("sample_data/seq_reconstruction/PET-RAFT_alt_seqs.csv",alt)
+# plt.imshow(alt)
+# plt.show()
 
 ########################## blocky ############################
 # exp_data = 1
@@ -46,15 +50,17 @@ exp_data = 1
 # A_conv, B_conv = fit.predict_conversion(4.,4.)
 # conv = np.array([A_conv, B_conv])
 
-r_matrix = np.array([
-    [4., 1.],
-    [1., 4.]
-])
-seq = PETRAFTSequenceEnsemble(100)
-blocky = seq.run_statistical(np.array([70.,30.]), 0.01, r_matrix, np.array([0.9,0.9]))
-plt.imshow(blocky)
-plt.show()
-# np.savetxt("blocky.csv",blocky)
+# r_matrix = np.array([
+#     [4., 1.],
+#     [1., 4.]
+# ])
+# seq = PETRAFTSequenceEnsemble(1000)
+# blocky = seq.run_statistical(np.array([70.,30.]), 0.01, r_matrix, conv)
+
+
+# np.savetxt("sample_data/seq_reconstruction/PET-RAFT_blocky.csv",blocky)
+# plt.imshow(blocky)
+# plt.show()
 
 ########################## statistical ############################
 # exp_data = 1
@@ -67,10 +73,10 @@ plt.show()
 #     [1., 1.],
 #     [1., 1.]
 # ])
-# seq = SequenceEnsemble(1000)
-# stat = seq.run_statistical(np.array([70.,30.]), 0.05, r_matrix, conv)
+# seq = PETRAFTSequenceEnsemble(1000)
+# stat = seq.run_statistical(np.array([70.,30.]), 0.01, r_matrix, conv)
 
-# np.savetxt("stat.csv",stat)
+# np.savetxt("sample_data/seq_reconstruction/PET-RAFT_stat.csv",stat)
 
 ####################################################################
 
@@ -90,8 +96,15 @@ plt.show()
 # m = MonomerFrequency(stat, 2)
 # m.plot_frequency()
 
-# data = np.loadtxt('stat.csv', delimiter=' ')
-# e = ConstructGraph(data, 2)
-# e.get_graph_as_heatmap(num_seq = 1000, segment_size=3)
+target_hex = "#491B4F"
+custom_cmap = LinearSegmentedColormap.from_list("custom_cmap", ["#FFFFFF", target_hex])
+
+data = np.loadtxt('sample_data/seq_reconstruction/thermal/copolymers/stat.csv', delimiter=' ')
+e = ConstructGraph(data, 2)
+g = e.get_graph_as_heatmap(num_seq = 1000, segment_size=3)
+np.savetxt("sample_data/seq_reconstruction/stat_adj_matrix.csv",g)
+plt.imshow(g, cmap=custom_cmap, vmin=0, vmax = 0.45)
+plt.colorbar()
+plt.savefig("stat_adj_matrix.svg", dpi=300)
 
 # fit.reconstruct_kinetics(0.01,1,1,0.01)
