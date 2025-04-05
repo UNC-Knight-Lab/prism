@@ -3,6 +3,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 import pandas as pd
 from scipy.stats import mode
+import ot
 
 class MonomerFrequency():
 
@@ -80,7 +81,7 @@ class ChainLengthDispersity():
         self.max_DP = seqs.shape[1]
         self.num_monomers = num_monomers
     
-    def _calc_weight(self, vec, mass):
+    def _calc_weight(self, vec, mass, CTA):
         mon_idx = np.arange(1, self.num_monomers+1)
 
         freq = np.zeros((self.num_monomers))
@@ -88,32 +89,26 @@ class ChainLengthDispersity():
         for i in range(self.num_monomers):
             freq[i] = np.sum(vec == mon_idx[i])
         
-        return np.dot(freq, mass)
+        return np.dot(freq, mass) + CTA
     
-    def get_dispersity(self, mass):
+    def get_dispersity(self, mass, CTA):
         chain_mass = np.zeros((self.num_seqs))
 
         for i in range(self.num_seqs):
-            chain_mass[i] = self._calc_weight(self.sequences[i,:], mass)
-        
-        unique_elements, counts = np.unique(chain_mass, return_counts=True)
-
-        counts = counts / np.sum(counts)
-
-        M_n = np.dot(unique_elements, counts)
-        w_n = (unique_elements * counts) / M_n
-        M_w = np.dot(unique_elements, w_n)
+            chain_mass[i] = self._calc_weight(self.sequences[i,:], mass, CTA)
+    
+        M_n = np.sum(chain_mass) / self.num_seqs
+        M_w = np.sum(chain_mass**2) / np.sum(chain_mass)
 
         return M_w / M_n
     
-    def get_distribution(self, mass):
+    def get_distribution(self, mass, CTA):
         chain_mass = np.zeros((self.num_seqs))
 
         for i in range(self.num_seqs):
-            chain_mass[i] = self._calc_weight(self.sequences[i,:], mass)
+            chain_mass[i] = self._calc_weight(self.sequences[i,:], mass, CTA)
         
-        plt.hist(chain_mass, bins=20)
-        plt.show()
+        return chain_mass
 
 class EnsembleSimilarity():
 
@@ -142,12 +137,9 @@ class EnsembleSimilarity():
 
         cg_seq = np.zeros((num_beads, len(kmer_list)))
 
-        total_junctions = 0
 
         for i in range(seq.shape[0]):
             running_idx = 0
-
-            # print(seq[i,:])
 
             for j in range(0,seq.shape[1], k):
 
@@ -155,18 +147,15 @@ class EnsembleSimilarity():
                 seg_counts = np.bincount(segment, minlength=self.num_monomers + 1)
                 seg_counts = seg_counts[1:]
 
-                # print(segment, seg_counts)
-
                 for idx, dist in enumerate(kmer_list):
                     if np.array_equal(dist, seg_counts):
                         cg_seq[running_idx, idx] += 1
                         running_idx += 1
-                        total_junctions += 1
                         break
                 else:
                     break
-                
-        return (cg_seq / total_junctions).T
+
+        return (cg_seq.T) / np.sum(cg_seq)
     
     def _cosine_sim(self, s1, s2):
         return np.dot(s1, s2) / (np.linalg.norm(s1) * np.linalg.norm(s2))
@@ -231,6 +220,21 @@ class EnsembleSimilarity():
         
         return acf
 
+    def _calc_wasserstein_dist(self, P_seq, Q_seq, C):
+        n_positions = P_seq.shape[1]
+        total_distance = 0.0
+        
+        for i in range(n_positions):
+            P = np.asarray(P_seq[:,i], dtype=np.float64)
+            Q = np.asarray(Q_seq[:,i], dtype=np.float64)
+
+            P /= P.sum()
+            Q /= Q.sum()
+                       
+            total_distance += ot.emd2(P, Q, C)
+        
+        return total_distance / n_positions 
+
     def global_difference(self, k = 1):
 
         if k == 1:
@@ -251,6 +255,7 @@ class EnsembleSimilarity():
                 
         else:
             kmer_comp = self._list_of_kmers(k)
+            n_k = kmer_comp.shape[0]
 
             cg_s1 = self._coarse_graining(self.seqs1, k, kmer_comp)
             cg_s2 = self._coarse_graining(self.seqs2, k, kmer_comp)
@@ -259,21 +264,16 @@ class EnsembleSimilarity():
             cg_s1, cg_s2 = self._realign(cg_s1, cg_s2)
 
             cg_s2_flip = np.flip(cg_s2, axis = 1)
-            
-            similarity = 0
-            similarity_rev = 0
-            normalization = 0
 
-            for i in range(kmer_comp.shape[0]):
+            weights = np.zeros((n_k, n_k))
+
+            for i in range(n_k):
                 for j in range(i+1):
-                    if (np.linalg.norm(cg_s1[i,:]) == 0) or (np.linalg.norm(cg_s2[j,:]) == 0):
-                        continue
-                    else:
-                        similarity += self._cosine_sim(cg_s1[i,:], cg_s2[j,:]) * self._cosine_sim(kmer_comp[i,:], kmer_comp[j,:]) 
-                        similarity_rev += self._cosine_sim(cg_s1[i,:], cg_s2_flip[j,:]) * self._cosine_sim(kmer_comp[i,:], kmer_comp[j,:])
-                        normalization += self._cosine_sim(kmer_comp[i,:], kmer_comp[j,:]) 
-            
-            return max(similarity / normalization, similarity_rev / normalization)
+                    weights[i,j] = 1 - self._cosine_sim(kmer_comp[i,:], kmer_comp[j,:])
+
+            score = self._calc_wasserstein_dist(cg_s1,cg_s2,weights)
+            score2 = self._calc_wasserstein_dist(cg_s1,cg_s2_flip,weights)
+            return min(score, score2)
     
     def correlation(self, monomer_type, corr_type = 'auto'):
         acf1 = self._scan_lags(self.seqs1, monomer_type, corr_type)

@@ -3,6 +3,7 @@ from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
 from matplotlib import pyplot as plt
 from scipy.optimize import minimize
+from scipy.stats import gaussian_kde
 
 k_s = 50
 k_j = 50
@@ -55,81 +56,92 @@ class PetRAFTKineticFitting():
 
         return sol
     
+    def _estimate_density(self, x):
+        kde = gaussian_kde(x)  # Estimate density
+        density = kde(x)  # Compute density at each point
+        weights = 1 / (density + 1e-6)  # Avoid division by zero
+        return weights / weights.sum()  # Normalize
+    
+    
     def _convert_XF(self, sol):
-        f_iA = self.A_mol / (self.A_mol + self.B_mol)
-        f_iB = self.B_mol / (self.A_mol + self.B_mol)
-
         A_conc = sol.y[3]
         B_conc = sol.y[4]
 
-        f_A = (A_conc / self.A_mol) * f_iA
-        f_B = (B_conc / self.B_mol) * f_iB
+        conv_A = A_conc / self.A_mol
+        conv_B = B_conc / self.B_mol
 
-        f_A[0] = f_iA
-        f_B[0] = f_iB
+        totalconv = 1 - ((A_conc + B_conc) / (self.A_mol + self.B_mol))
 
-        fracA = f_A / (f_A + f_B)
-        totalfrac = ((f_iA - f_A) + (f_iB - f_B)) / (f_iA + f_iB)
-
-        indices = np.where(totalfrac > self.exp_data.iloc[-1,0])[0]  # Get indices where condition is met
+        indices = np.where(totalconv > self.exp_data.iloc[-1,0])[0]  # Get indices where condition is met
         idx = indices[0] if indices.size > 0 else -1  # Return first valid index or -1 if none found
 
-        if idx == -1 or idx + 1 == totalfrac.shape:
-            return np.array([]), np.array([])
+        if idx == -1 or idx + 1 == totalconv.shape:
+            return np.array([]), np.array([]), np.array([])
         else:
             idx += 1
-            return fracA[:idx], totalfrac[:idx]
+            return conv_A[:idx], conv_B[:idx], totalconv[:idx]
     
-    def _sum_square_residuals(self, pred_X, pred_F):
+    def _test_kinetics_convert(self, sol):
+        A_conc = sol.y[3]
+        B_conc = sol.y[4]
+
+        conv_A = A_conc / self.A_mol
+        conv_B = B_conc / self.B_mol
+
+        totalconv = 1 - ((A_conc + B_conc) / (self.A_mol + self.B_mol))
+
+        return conv_A, conv_B, totalconv
+    
+    def _loss(self, pred_X, pred_F, i):
+        weights = self._estimate_density(self.exp_data.iloc[:,0])
+
         interpolator = interp1d(pred_X, pred_F, kind='linear')
         y_interpolated = interpolator(self.exp_data.iloc[:,0])
+        
+        grad_exp = np.diff(self.exp_data.iloc[:,i])
+        grad_sim = np.diff(y_interpolated)
 
-        residuals = self.exp_data.iloc[:,self.data_index] - y_interpolated
+        ssr = np.sum(weights * (self.exp_data.iloc[:,i] - y_interpolated) ** 2)
+        grad_diff = np.sum(weights[:-1] * (grad_exp - grad_sim) ** 2)
+        lambda_ = 0.1
 
-        return np.sum(residuals**2)
+        return ssr + (lambda_ * grad_diff)
     
     def _objective(self, k):
         k_AA, k_BB = k
         k_AB = 1.
         k_BA = 1.
-        t_max = 100.
+        t_max = 20.
 
         sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB, t_max)
-        pred_F, pred_X = self._convert_XF(sol)
+        convA, convB, tot_conv = self._convert_XF(sol)
 
-        while pred_F.shape[0] < 20:
-            t_max += 100
+        while tot_conv.shape[0] < 20:
+            t_max += 20
             sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB, t_max)
-            pred_F, pred_X = self._convert_XF(sol)
+            convA, convB, tot_conv = self._convert_XF(sol)
         
-        loss = self._sum_square_residuals(pred_X, pred_F)
+        loss1 = self._loss(tot_conv, convA, 1)
+        loss2 = self._loss(tot_conv, convB, 2)
         print(k)
 
-        return loss
+        return loss1 + loss2
     
-    def display_overlay(self, new_k, t_max = 100.):
+    def display_overlay(self, new_k, t_max = 20.):
         k_AA, k_BB = new_k
         k_AB = 1
         k_BA = 1
 
         sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB, t_max)
-        pred_F, pred_X = self._convert_XF(sol)
+        convA, convB, tot_conv = self._convert_XF(sol)
+
+        return convA, convB, tot_conv
 
 
-        np.savetxt("pred_X.csv",pred_X)
-        np.savetxt("pred_F.csv",pred_F)
+    def reconstruct_kinetics(self, k_AA, k_BB, t_max = 20.):
 
-
-        plt.scatter(self.exp_data.iloc[:,0], self.exp_data.iloc[:,self.data_index])
-        plt.scatter(pred_X,pred_F)
-        plt.ylim([0,1.1])
-        plt.show()
-
-
-    def reconstruct_kinetics(self, k_AB, k_BA, t_max = 100.):
-
-        k_AA = 1
-        k_BB = 1
+        k_AB = 1
+        k_BA = 1
 
         sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB, t_max)
 
@@ -137,7 +149,7 @@ class PetRAFTKineticFitting():
             plt.plot(sol.t, sol.y[i])
         plt.show()
     
-    def predict_conversion(self, r_A, r_B, t_max = 100.):
+    def predict_conversion(self, r_A, r_B, t_max = 20.):
         k_AB = 1
         k_BA = 1
         k_AA = r_A
@@ -151,15 +163,14 @@ class PetRAFTKineticFitting():
         return A_conv, B_conv
 
     
-    def extract_rates(self, r_1, r_2, t_max = 100.):
+    def extract_rates(self, r_1, r_2, t_max = 20.):
         k = [r_1, r_2]
         new_k = minimize(fun=self._objective, x0=k, method='L-BFGS-B', bounds=[(0.01,10),(0.01,10)])
         print("Converged rates are", new_k.x)
-        np.savetxt("two_monomer_converged_rates.csv", new_k.x, delimiter=",", fmt="%f")
 
-        self.display_overlay(new_k.x, t_max)
+        convA, convB, tot_conv = self.display_overlay(new_k.x, t_max)
 
-        return new_k.x
+        return new_k.x, convA, convB, tot_conv
     
     def test_values(self, r_1, r_2, t_max):
         k_AB = 1.
@@ -168,14 +179,9 @@ class PetRAFTKineticFitting():
         k_BB = r_2
 
         sol = self._integrate_ODE(k_AA, k_AB, k_BA, k_BB, t_max)
-        pred_F, pred_X = self._convert_XF(sol)
+        convA, convB, tot_conv = self._test_kinetics_convert(sol)
 
-        plt.plot(pred_X,pred_F)
-        plt.ylim([0,1.1])
-        plt.xlabel('Total Conversion')
-        plt.ylabel('Fraction Conversion')
-        plt.show()
-
+        return convA, convB, tot_conv
 
 
 

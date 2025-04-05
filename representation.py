@@ -129,33 +129,34 @@ t4 = np.loadtxt('sample_data/seq_reconstruction/thermal/multiblocks/t4_seqs.csv'
 
 
 # # print(d1)
-# all_data = [d1, d2, t1, t2, t3, t4]
+all_data = [d1, d2, t1, t2, t3, t4]
 
-# similarity1 = np.zeros((6,6))
-# similarity2 = np.zeros((6,6))
-# similarity3 = np.zeros((6,6))
-# similarity = np.zeros((6,6))
+similarity1 = np.zeros((6,6))
+similarity2 = np.zeros((6,6))
+similarity3 = np.zeros((6,6))
+similarity = np.zeros((6,6))
 
-# target_hex = "#491B4F"
-# custom_cmap = LinearSegmentedColormap.from_list("custom_cmap", ["#FFFFFF", target_hex])
-
+target_hex = "#491B4F"
+custom_cmap = LinearSegmentedColormap.from_list("custom_cmap", ["#FFFFFF", target_hex])
 
 # for s1 in range(6):
 #     for s2 in range(s1+1):
 #         e = EnsembleSimilarity(all_data[s1], all_data[s2], num_monomers=3)
-#         scores = e.global_difference(k=1)
-#         similarity1[s1,s2], similarity2[s1,s2], similarity3[s1,s2] = scores
-#         # similarity[s1,s2] = scores
+#         scores = e.global_difference(k=10)
+#         # similarity1[s1,s2], similarity2[s1,s2], similarity3[s1,s2] = scores
+#         similarity[s1,s2] = scores
 
 # s1 = np.where(similarity1 == 0, np.nan, similarity1)
 # s2 = np.where(similarity2 == 0, np.nan, similarity2)
 # s3 = np.where(similarity3 == 0, np.nan, similarity3)
-# # s = np.where(similarity == 0, np.nan, similarity)
+# s = np.where(similarity == 0, np.nan, similarity)
 
-# # plt.figure()
-# # plt.imshow(s, cmap='magma_r',vmin=0, vmax=1.0)
-# # plt.colorbar()
-# # plt.savefig("fivemonomer.svg", dpi=300)
+s = np.loadtxt('sample_data/seq_reconstruction/wasserstein_10m.csv', delimiter=' ')
+
+plt.figure()
+plt.imshow(s, cmap=custom_cmap, vmin=0, vmax=0.15)
+plt.colorbar()
+plt.savefig("wasserstein_10m.svg", dpi=300)
 
 
 # plt.figure()
@@ -171,18 +172,19 @@ t4 = np.loadtxt('sample_data/seq_reconstruction/thermal/multiblocks/t4_seqs.csv'
 # plt.figure()
 # plt.imshow(s3, cmap=custom_cmap,vmin=0, vmax=1.0)
 # plt.colorbar()
+# plt.show()
 # plt.savefig("onemonomer_3.svg", dpi=300)
 
 ########################## autocorrelation ###########################
-e = EnsembleSimilarity(d1, d2, num_monomers=3)
-d1, d2 = e.correlation(1)
+# e = EnsembleSimilarity(d1, d2, num_monomers=3)
+# d1, d2 = e.correlation(1)
 
-e = EnsembleSimilarity(t1, t2, num_monomers=3)
-a1, a2 = e.correlation(1)
+# e = EnsembleSimilarity(t1, t2, num_monomers=3)
+# a1, a2 = e.correlation(1)
 
 
-e = EnsembleSimilarity(t3, t4, num_monomers=3)
-a3, a4 = e.correlation(1)
+# e = EnsembleSimilarity(t3, t4, num_monomers=3)
+# a3, a4 = e.correlation(1)
 
 #### PAIRWISE
 # e = EnsembleSimilarity(d1, d2, num_monomers=3)
@@ -194,14 +196,14 @@ a3, a4 = e.correlation(1)
 
 # a3, a4 = e.correlation([2,3], corr_type='pair')
 
-plt.figure(figsize=(1.6,1.2))
-plt.plot(a1, lw=1)
-# plt.plot(a2, lw=1)
-plt.plot(a3, lw=1)
-plt.plot(a4, lw=1)
-# plt.plot(d1, lw=1)
-# plt.plot(d2, lw=1)
-plt.yticks(np.arange(0, 1.1, step=0.2))
-plt.xticks(np.arange(0, 151, step=25))
-# plt.show()
-plt.savefig('auto_corr.pdf', dpi=300)
+# plt.figure(figsize=(1.6,1.2))
+# plt.plot(a1, lw=1)
+# # plt.plot(a2, lw=1)
+# plt.plot(a3, lw=1)
+# plt.plot(a4, lw=1)
+# # plt.plot(d1, lw=1)
+# # plt.plot(d2, lw=1)
+# plt.yticks(np.arange(0, 1.1, step=0.2))
+# plt.xticks(np.arange(0, 151, step=25))
+# # plt.show()
+# plt.savefig('auto_corr.pdf', dpi=300)
