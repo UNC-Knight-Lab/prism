@@ -112,7 +112,7 @@ class ConstructGraph():
         kmer_freq = np.zeros((num_kmers, num_kmers))
         connections = 0
 
-        for i in range(0,len(seq) - k, k): # not sliding window for connectivity
+        for i in range(0,num_kmers, k): # not sliding window for connectivity
             test_motif = seq[i:(i+k)]
             nn_motif = seq[(i+k):(i + (2*k))]
 
