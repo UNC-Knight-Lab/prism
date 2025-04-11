@@ -36,11 +36,9 @@ class MeyerLoweryFitting():
 
         fA_0, fA, fB_0, fB, conv = self._recast_data(Amol, Bmol)
         y = self._meyer_lowery(fA, fA_0, r_A, r_B)
+        
+        return fA, y, conv
 
-        plt.scatter(fA, y)
-        plt.scatter(fA, conv)
-        # plt.ylim([0,1])
-        plt.show()
 
     def extract_rates(self, exp_data, r_A = 0.5, r_B = 0.5):
         Amol = exp_data.iloc[:,1]

@@ -3,7 +3,8 @@ import pandas as pd
 from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
 from matplotlib import pyplot as plt
-from scipy.optimize import least_squares, minimize
+from scipy.optimize import differential_evolution, minimize
+from scipy.stats import gaussian_kde
 
 k_s = 50
 k_j = 50
@@ -121,7 +122,6 @@ class ThreeMonomerThermalRAFTKineticFitting():
         plt.ylim([0,1.1])
         plt.show()
 
-    
     def extract_rates(self, r_1A, r_2A, r_1B, r_2B, r_1C, r_2C):
         k = [1/r_1A, 1/r_2A, 1/r_1B, 1/r_2B, 1/r_1C, 1/r_2C]
 
@@ -199,96 +199,112 @@ class ThreeMonomerPETRAFTKineticFitting():
         return sol
     
     def _convert_XF(self, sol):
-        f_iA = self.A_mol / (self.A_mol + self.B_mol + self.C_mol)
-        f_iB = self.B_mol / (self.A_mol + self.B_mol + self.C_mol)
-        f_iC = self.C_mol / (self.A_mol + self.B_mol + self.C_mol)
-    
         A_conc = sol.y[3]
         B_conc = sol.y[4]
         C_conc = sol.y[5]
 
-        f_A = (A_conc / self.A_mol) * f_iA
-        f_B = (B_conc / self.B_mol) * f_iB
-        f_C = (C_conc / self.C_mol) * f_iC
+        conv_A = A_conc / self.A_mol
+        conv_B = B_conc / self.B_mol
+        conv_C = C_conc / self.C_mol
 
-        f_A[0] = f_iA
-        f_B[0] = f_iB
-        f_C[0] = f_iC
+        totalconv = 1 - ((A_conc + B_conc + C_conc) / (self.A_mol + self.B_mol + self.C_mol))
 
-        fracA = f_A / (f_A + f_B + f_C)
-        fracB = f_B / (f_A + f_B + f_C)
-        fracC = f_C / (f_A + f_B + f_C)
-        totalfrac = ((f_iA - f_A) + (f_iB - f_B) + (f_iC - f_C)) / (f_iA + f_iB + f_iC)
-
-        indices = np.where(totalfrac > self.exp_data.iloc[-1,0])[0]  # Get indices where condition is met
+        indices = np.where(totalconv > self.exp_data.iloc[-1,0])[0]  # Get indices where condition is met
         idx = indices[0] if indices.size > 0 else -1  # Return first valid index or -1 if none found
 
-        if idx == -1 or idx + 1 == totalfrac.shape:
+        if idx == -1 or idx + 1 == totalconv.shape:
             return np.array([]), np.array([]), np.array([]), np.array([])
         else:
             idx += 1
-            return fracA[:idx], fracB[:idx], fracC[:idx], totalfrac[:idx]
+            return conv_A[:idx], conv_B[:idx], conv_C[:idx], totalconv[:idx]
     
-    def _sum_square_residuals(self, pred_X, pred_F, i):
-        # print("SSR", pred_X[-1], self.exp_data.iloc[-1,0])
+    def _loss(self, pred_X, pred_F, i):
+        weights = self._estimate_density(self.exp_data.iloc[:,0])
+
         interpolator = interp1d(pred_X, pred_F, kind='linear')
         y_interpolated = interpolator(self.exp_data.iloc[:,0])
+        
+        grad_exp = np.diff(self.exp_data.iloc[:,i])
+        grad_sim = np.diff(y_interpolated)
 
-        residuals = self.exp_data.iloc[:,i] - y_interpolated
+        ssr = np.sum(weights * (self.exp_data.iloc[:,i] - y_interpolated) ** 2)
+        grad_diff = np.sum(weights[:-1] * (grad_exp - grad_sim) ** 2)
+        lambda_ = 0.1
 
-        return np.sum(residuals**2)
+        return ssr + (lambda_ * grad_diff)
     
-    def _objective1(self, k):
+    def _estimate_density(self, x):
+        kde = gaussian_kde(x)  # Estimate density
+        density = kde(x)  # Compute density at each point
+        weights = 1 / (density + 1e-6)  # Avoid division by zero
+        return weights / weights.sum()  # Normalize
+    
+    def _objective(self, k):
         k_AB, k_AC, k_BA, k_BC, k_CA, k_CB = k
         k_AA = 1.
         k_BB = 1.
         k_CC = 1.
-        t_max = 100.
+        t_max = self.t_max
 
         sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d, t_max=t_max)
         pred_F1, pred_F2, pred_F3, pred_X = self._convert_XF(sol)
 
         while pred_F1.shape[0] < 20:
-            t_max += 100
+            t_max += self.t_max
             sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d, t_max=t_max)
             pred_F1, pred_F2, pred_F3, pred_X = self._convert_XF(sol)
             
-        loss2 = self._sum_square_residuals(pred_X, pred_F2, 2)
-        loss1 = self._sum_square_residuals(pred_X, pred_F1, 1)
-        loss3 = self._sum_square_residuals(pred_X, pred_F3, 3)
+        loss2 = self._loss(pred_X, pred_F2, 2)
+        loss1 = self._loss(pred_X, pred_F1, 1)
+        loss3 = self._loss(pred_X, pred_F3, 3)
 
         print(k, t_max, loss1 + loss2 + loss3)
 
         return loss1 + loss2 + loss3
       
-    def display_overlay(self, new_k, t_max = 100.):
+    def display_overlay(self, new_k, t_max = None):
         k_AB, k_AC, k_BA, k_BC, k_CA, k_CB = new_k
         k_AA = 1
         k_BB = 1
         k_CC = 1
 
+        if t_max == None:
+            t_max = self.t_max
+
         sol = self._integrate_ODE(k_s, k_j, k_AA, k_AB, k_AC, k_BB, k_BA, k_BC, k_CC, k_CA, k_CB, k_c, k_d, t_max)
         pred_F1, pred_F2, pred_F3, pred_X = self._convert_XF(sol)
 
-        # plt.scatter(self.exp_data.iloc[:,0], self.exp_data.iloc[:,1])
-        # plt.scatter(self.exp_data.iloc[:,0], self.exp_data.iloc[:,2])
-        # plt.plot(pred_X,pred_F1)
-        # plt.plot(pred_X,pred_F2)
-        # plt.show()
-        np.savetxt("three_pred_X.csv",pred_X)
-        np.savetxt("three_pred_F1.csv",pred_F1)
-        np.savetxt("three_pred_F2.csv",pred_F2)
-        np.savetxt("three_pred_F3.csv",pred_F3)
+        return pred_F1, pred_F2, pred_F3, pred_X
 
-    
-    def extract_rates(self, r_1A, r_2A, r_1B, r_2B, r_1C, r_2C):
-        k = [1/r_1A, 1/r_2A, 1/r_1B, 1/r_2B, 1/r_1C, 1/r_2C]
 
-        k = minimize(fun=self._objective1, x0=k, method='L-BFGS-B', bounds=[(0.01,5),(0.01,5),(0.01,5),(0.01,5),(0.01,5),(0.01,5)])
-        print("Converged rates are", k.x)
-        np.savetxt("three_converged_rates.csv", k.x, delimiter=",", fmt="%f")
+    def extract_rates(self, t_max, bounds, guess_, fit_type = 'L-BFGS-B'):
 
-        self.display_overlay(k.x)
+        if fit_type == 'differential-evolution':
+                self.t_max = t_max
+
+                k = differential_evolution(func=self._objective, bounds=bounds, strategy='best1bin')
+                print("Converged rates are", k.x)
+                
+                m1, m2, m3, conv = self.display_overlay(k.x)
+                return k.x, m1, m2, m3, conv
+        else:
+            k = guess_ #np.zeros((6))
+
+            # for i in range(6):
+            #     if bounds[i][0] == 1:
+            #         k[i] = 2
+            #     else:
+            #         k[i] = 0.5
+
+            self.t_max = t_max
+
+            k = minimize(fun=self._objective, x0=k, method='L-BFGS-B', bounds=bounds)
+            print("Converged rates are", k.x)
+
+            m1, m2, m3, conv = self.display_overlay(k.x)
+            return k.x, m1, m2, m3, conv
+
+
     
     def test_values(self, r_1A, r_2A, r_1B, r_2B, r_1C, r_2C, t_max = 100.):
         k_AB = 1/r_1A
