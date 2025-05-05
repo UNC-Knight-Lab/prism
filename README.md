@@ -17,3 +17,6 @@ A version of Python >= 3.7 is required to use this package. We recommend using [
    or `pip install /path/to/package/prism`
 
 That's it!
+
+## How to use
+We recommend users going through our associated publication to better understand and contextualize the capabilities of this package. Further examples of functions and calls are delineated in the `main` Jupyter notebook file.
