@@ -1,5 +1,5 @@
 # prism
-Welcome to the PRISM (Polymers: Rate Insights and Sequence Modeling) package, offered by the Knight Lab at UNC Chapel Hill! This script was developed by Supraja Chittari (suprajac@email.unc.edu) and is compiled as a Python package.
+Welcome to the PRISM (Polymer Rate Insights and Sequence Modeling) package, offered by the Knight Lab at UNC Chapel Hill! This script was developed by Supraja Chittari (suprajac@email.unc.edu) and is compiled as a Python package.
 
 ## Installation Instructions
 A version of Python >= 3.7 is required to use this package. We recommend using [Anaconda](https://www.anaconda.com) to install Python for those new to Python.
@@ -19,4 +19,6 @@ A version of Python >= 3.7 is required to use this package. We recommend using [
 That's it!
 
 ## How to use
-We recommend users going through our associated publication to better understand and contextualize the capabilities of this package. Further examples of functions and calls are delineated in the `main` Jupyter notebook file.
+We recommend users going through our associated publication to better understand and contextualize the capabilities of this package, which is divided into four main modules. These include fitting functions (which take polymerization kinetics data to return reactivity ratios), simulation functions (which take reactivity ratios to return an ensemble of sequences), and analysis functions (which take an ensemble of sequences and return statistics and visualizations.)
+
+Further examples of functions and calls are delineated in Jupyer notebook files in the `examples` folder.
