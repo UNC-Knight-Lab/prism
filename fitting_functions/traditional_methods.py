@@ -40,7 +40,7 @@ class MeyerLoweryFitting():
         return fA, y, conv
 
 
-    def extract_rates(self, exp_data, r_A = 0.5, r_B = 0.5):
+    def fit(self, exp_data, r_A = 0.5, r_B = 0.5):
         Amol = exp_data.iloc[:,1]
         Bmol = exp_data.iloc[:,2]
 
@@ -54,6 +54,38 @@ class MeyerLoweryFitting():
         plt.show()
 
         return r_A, r_B
+
+class MayoLewisFitting():
+
+    def _mayo_lewis(self, x, r_A, r_B):
+
+        return ((r_A * x**2) + (x * (1 - x))) / ((r_A * x ** 2) + (2 * x * (1 - x)) + (r_B * (1 - x) ** 2))
+    
+    def _fit(self, x, slope_ratio, r_A, r_B):
+        fmodel = Model(self._mayo_lewis)
+        params = fmodel.make_params(r_A = {'value':r_A, 'min':0, 'max':6}, 
+                                    r_B = {'value':r_B, 'min':0, 'max':6}) # set guesses
+        result = fmodel.fit(slope_ratio, x=x, params=params, verbose=True)
+
+        return result.params['r_A'], result.params['r_B']
+
+    
+    def visualize_overlay(self, exp_data, r_A, r_B):
+        fA = exp_data.iloc[:,0]
+
+        y = self._mayo_lewis(fA, r_A, r_B)
+        
+        return y
+
+
+    def fit(self, exp_data, r_A = 0.5, r_B = 0.5):
+        fA = exp_data.iloc[:,0]
+        slope_ratio = exp_data.iloc[:,1]
+
+        r_A, r_B = self._fit(fA, slope_ratio, r_A, r_B)
+        y = self._mayo_lewis(fA, r_A, r_B)
+
+        return r_A.value, r_B.value
 
 
 

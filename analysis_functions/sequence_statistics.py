@@ -100,6 +100,8 @@ class ChainLengthDispersity():
         M_n = np.sum(chain_mass) / self.num_seqs
         M_w = np.sum(chain_mass**2) / np.sum(chain_mass)
 
+        print("Mn is ", M_n)
+
         return M_w / M_n
     
     def get_distribution(self, mass, CTA):
@@ -186,7 +188,7 @@ class EnsembleSimilarity():
         
         return s1_resized, s2_resized
     
-    def _acf_lag(self, k, seq, x, last_nonzero_index, corr_type):
+    def _acf_lag_forward(self, k, seq, x, last_nonzero_index, corr_type):
         if corr_type == 'auto':
             binary_seq = np.where(seq == x, 1, 0)
             acf = 0
@@ -207,6 +209,28 @@ class EnsembleSimilarity():
             return acf / (last_nonzero_index - k)
         else:
             print("ERROR: Invalid correlation type selected. Please try again specifying 'pair' or 'auto'.")
+    
+    def _acf_lag_reverse(self, k, seq, x, last_nonzero_index, corr_type):
+        if corr_type == 'auto':
+            binary_seq = np.where(seq == x, 1, 0)
+            acf = 0
+
+            for i in range(last_nonzero_index, k, -1):
+                acf += binary_seq[i]*binary_seq[i-k]
+            return acf / (last_nonzero_index - k)
+
+        elif corr_type == 'pair':
+            replaced_seq = np.zeros_like(seq)
+            replaced_seq[seq == x[0]] = 1
+            replaced_seq[seq == x[1]] = 2
+            acf = 0
+
+            for i in range(last_nonzero_index, k, -1):
+                if replaced_seq[i]*replaced_seq[i-k] == 2:
+                    acf += replaced_seq[i]*replaced_seq[i-k]
+            return acf / (last_nonzero_index - k)
+        else:
+            print("ERROR: Invalid correlation type selected. Please try again specifying 'pair' or 'auto'.")
 
     def _scan_lags(self, seq, monomer_type, corr_type):
 
@@ -216,7 +240,8 @@ class EnsembleSimilarity():
             last_nonzero_index = np.max(np.nonzero(seq[i,:]))
 
             for j in range(last_nonzero_index):
-                acf[j] += (self._acf_lag(j, seq[i,:], monomer_type, last_nonzero_index, corr_type)) / seq.shape[0]
+                # acf[j] += (self._acf_lag_forward(j, seq[i,:], monomer_type, last_nonzero_index, corr_type)) / seq.shape[0]
+                acf[j] += (self._acf_lag_reverse(j, seq[i,:], monomer_type, last_nonzero_index, corr_type)) / seq.shape[0]
         
         return acf
 
