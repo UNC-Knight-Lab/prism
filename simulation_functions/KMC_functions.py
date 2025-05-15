@@ -760,7 +760,7 @@ class ThermalRAFTSequenceEnsemble():
 
         for i in range(num_initiated_chains):
             new = self._first_monomer(mmol_feed, self.num_monomers, monomer_indexes)
-            mmol_feed = self._growth_update(mmol_feed, new, i, delta, monomer_indexes, self.num_monomers)
+            mmol_feed = self._abridged_growth_update(mmol_feed, new, i, delta, monomer_indexes, self.num_monomers)
         
         self.chain_status[0:num_initiated_chains] = 1
 
@@ -769,14 +769,14 @@ class ThermalRAFTSequenceEnsemble():
 
             if self.chain_status[chain] == 1:
                 new = self._force_growth(chain, mmol_feed, rate_matrix, self.num_monomers, monomer_indexes)
-                mmol_feed = self._growth_update(mmol_feed, new, chain, delta, monomer_indexes, self.num_monomers)
+                mmol_feed = self._abridged_growth_update(mmol_feed, new, chain, delta, monomer_indexes, self.num_monomers)
                 self._capping_update(chain, capped_index)
                 swap_chain = self._draw_capped_chain()
                 self._uncapping_update(swap_chain, uncapped_index)
             else:
                 self._uncapping_update(chain, uncapped_index)
                 new = self._force_growth(chain, mmol_feed, rate_matrix, self.num_monomers, monomer_indexes)
-                mmol_feed = self._growth_update(mmol_feed, new, chain, delta, monomer_indexes, self.num_monomers)
+                mmol_feed = self._abridged_growth_update(mmol_feed, new, chain, delta, monomer_indexes, self.num_monomers)
 
                 swap_chain = self._draw_uncapped_chain()
                 self._capping_update(swap_chain, capped_index)
@@ -788,7 +788,37 @@ class ThermalRAFTSequenceEnsemble():
         
         return capped_chains
     
-    def _run_gradient(self, mmol_feed, rate_matrix, self.num_monomers):
+    def _run_gradient(self, mmol_feed, rate_matrix, conversion):
+        delta = 1.0 / self.num_monomers
+
+        uncapped_index = 0
+        monomer_indexes = np.arange(1, self.num_monomers+1)
+        capped_index = self.num_monomers + 1
+
+        left_over = (1 - conversion) * mmol_feed
+
+        while np.max(self.lengths) <= self.max_DP:
+            chain = random.choice(np.arange(0,self.n_chains))
+
+            if self.chain_status[chain] == 1:
+                new = self._force_growth(chain, mmol_feed, rate_matrix, self.num_monomers, monomer_indexes)
+                mmol_feed = self._abridged_growth_update(mmol_feed, new, chain, delta, monomer_indexes, self.num_monomers)
+                self._capping_update(chain, capped_index)
+                swap_chain = self._draw_capped_chain()
+                self._uncapping_update(swap_chain, uncapped_index)
+            else:
+                self._uncapping_update(chain, uncapped_index)
+                new = self._force_growth(chain, mmol_feed, rate_matrix, self.num_monomers, monomer_indexes)
+                mmol_feed = self._abridged_growth_update(mmol_feed, new, chain, delta, monomer_indexes, self.num_monomers)
+
+                swap_chain = self._draw_uncapped_chain()
+                self._capping_update(swap_chain, capped_index)
+            
+            result = (mmol_feed - left_over) <= delta
+
+            if result.all() == True:
+                break
+    
 
     def run_statistical(self, feed_ratios, initiator, rate_matrix, c_tr, c_uncap, conversion = None, sim = 'full'):
         self._get_rate_constants(c_tr, c_uncap, rate_matrix)
