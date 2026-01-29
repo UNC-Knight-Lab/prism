@@ -3,7 +3,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 import pandas as pd
 from scipy.stats import mode
-import ot
 
 class MonomerFrequency():
 
@@ -138,7 +137,6 @@ class EnsembleSimilarity():
         num_beads = np.int64(seq.shape[1] / k)
 
         cg_seq = np.zeros((num_beads, len(kmer_list)))
-
 
         for i in range(seq.shape[0]):
             running_idx = 0
@@ -300,6 +298,18 @@ class EnsembleSimilarity():
             score2 = self._calc_wasserstein_dist(cg_s1,cg_s2_flip,weights)
             return min(score, score2)
     
+    def kmer_distributions(self, features, k = 2):
+        kmer_list = self._list_of_kmers(k)
+        n_k = kmer_list.shape[0]
+
+        averaged_features = np.dot(kmer_list, features)
+
+        cg_s1 = np.sum(self._coarse_graining(self.seqs1, k, kmer_list), axis = 1)
+        cg_s2 = np.sum(self._coarse_graining(self.seqs2, k, kmer_list), axis = 1)
+
+        return cg_s1, cg_s2, averaged_features
+
+
     def correlation(self, monomer_type, corr_type = 'auto'):
         acf1 = self._scan_lags(self.seqs1, monomer_type, corr_type)
         acf2 = self._scan_lags(self.seqs2, monomer_type, corr_type)
