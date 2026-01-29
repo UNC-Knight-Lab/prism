@@ -5,7 +5,6 @@ Welcome to the PRISM (Polymer Rate Insights and Sequence Modeling) package, offe
 - [Installation](#installation)
 - [Documentation](#documentation)
 - [Usage](#usage)
-- [Instrumentation](#instrumentation)
 
 ## Installation Instructions
 A version of Python >= 3.10 is required to use this package. We recommend using [Anaconda](https://www.anaconda.com) to install Python for those new to Python.
